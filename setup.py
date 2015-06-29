@@ -20,9 +20,12 @@ class CMakeBuild(build_ext):
             if os.system("%s %s %s" % (cmd, build_dir, target)) != 0:
                 print("ERROR: Failed to run %s" % cmd)
                 sys.exit(1)
+        #copy to cuda lib dir/ the cuda lib dir will be in path, so cudanet should automatically work
+        os.system("cp %s/cudanet/libcconv2_cudanet.so /usr/local/cuda/lib64" % (build_dir))
+
 
 cudanet = Extension('cudanet.libcudanet', sources = [],
-                    runtime_library_dirs=['cudanet','cudanet/random'])
+                    runtime_library_dirs=['cudanet'])
 install_requires = ['numpy', ]
 test_requires = ['nose', ]
 
