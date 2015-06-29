@@ -36,7 +36,8 @@ class array(object):
         if type(array) in [np.ndarray, np.memmap]:
             # Convert array to float32 in FORTRAN order
             # array = reformat(array, copy = copy_on_host)
-            array = np.float32(array)
+            
+            assert len(array.shape) <= 2, "arrays with more than two dimensions are not supported"
 
             # Initialize as a ndarray-tied matrix.
             self.mat = cudanetmat()
@@ -144,23 +145,6 @@ class array(object):
             mat = mat.col_slice_view(cols.start, cols.stop, include_host=False)
         return mat
 
-    @staticmethod
-    def init_random(seed = None):
-        pass
-    #     """
-    #     Initialize and seed the random number generator.
-    #     """
-
-    #     NUM_RND_STREAMS = 96*128
-    #     CUDAMatrix.rndInitialized = 1
-    #     CUDAMatrix.rnd_state = rnd_struct()
-    #     CUDAMatrix.rnd_state_p = ct.pointer(array.rnd_state)
-
-    #     cudamat_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'rnd_multipliers_32bit.txt')
-
-    #     err_code = _cudanet.init_random(array.rnd_state_p, ct.c_int(seed), cudamat_path)
-    #     if err_code:
-    #         raise generate_exception(err_code)
 
     @property
     def shape(self):
@@ -650,7 +634,7 @@ class array(object):
 
         return target
 
-    def sum(self, axis, target = None, mult = 1.):
+    def sum(self, axis=None, target = None, mult = 1.):
         """
         Sum the matrix along the given dimension, where 0 represents the leading
         dimension and 1 represents the non-leading dimension. If a target is
@@ -683,7 +667,7 @@ class array(object):
 
         return target
 
-    def sumsq(self, axis, target = None, mult = 1.):
+    def sumsq(self, axis=None, target = None, mult = 1.):
         """
         Sum the matrix along the given dimension, where 0 represents the leading
         dimension and 1 represents the non-leading dimension. If a target is
@@ -715,7 +699,7 @@ class array(object):
 
         return target
 
-    def mean(self, axis, target = None):
+    def mean(self, axis=None, target = None):
         """
         Compute the mean of the matrix along the given dimension, where 0
         represents the leading dimension and 1 represents the non-leading
@@ -741,7 +725,7 @@ class array(object):
 
         return target
 
-    def var(self, axis, mean, target = None):
+    def var(self, axis= None, mean=None, target = None):
         """
         Compute the variance of the matrix along the given dimension, where 0
         represents the leading dimension and 1 represents the non-leading
@@ -749,6 +733,8 @@ class array(object):
         storing the result.
         """
         m, n = self.shape
+        
+        if not mean: mean = self.mean(axis)
 
         if axis == 0:
             if not target:
@@ -764,6 +750,12 @@ class array(object):
             raise generate_exception(err_code)
 
         return target
+    
+    def std(self, axis=None):
+        target = self.var(axis)
+        pow(target, 0.5, target)
+        return target        
+        
 
     def equals(self, val, target = None):
         """
@@ -873,33 +865,6 @@ class array(object):
 
         return target
 
-    def sum(self, axis, target = None):
-        """
-        Find the maximum value along the given dimension, where 0 represents the
-        leading dimension and 1 represents the non-leading dimension. If a target
-        is not provided, a new vector is created for storing the result.
-        """
-
-        m, n = self.shape
-
-        if axis == 0:
-            if not target:
-                target = empty((1, n))
- 
-        elif axis == 1:
-            if not target:
-                target = empty((m, 1))
-        elif axis == None:
-            if not target:
-                target = empty((1,1))
-            axis = -1
-
-        err_code =  _cudanet.sum(self.p_mat, target.p_mat, ct.c_int(axis))
-        if err_code:
-            raise generate_exception(err_code)
-
-        return target
-
     def mean_norm(self, axis, target = None):
         """
         Find the maximum value along the given dimension, where 0 represents the
@@ -989,32 +954,6 @@ class array(object):
 
         return target
 
-    def randomize_gaussian(self, mean, stdev):
-        """
-        Fill in matrix with random values according to gaussian distribution with mean
-        and stdev
-        """
-        err_code = _cudanet.randomize_gaussian(self.p_mat, ct.c_float(mean), ct.c_float(stdev));
-        if err_code:
-            raise generate_exception(err_code)
-
-    def randomize_uniform(self):
-        """
-        Fill in matrix with random values according to uniform distribution
-        between 0 and 1
-        """
-        err_code = _cudanet.randomize_uniform(self.p_mat);
-        if err_code:
-            raise generate_exception(err_code)
-
-    def randomize_binary(self):
-        """
-        Fill in matrix with random values of {0,1} according to mask on uniform
-        distribution
-        """
-        err_code = _cudanet.randomize_binary(self.p_mat);
-        if err_code:
-            raise generate_exception(err_code)
 
     def add_noise_gaussian(self, stdev):
         """
@@ -1855,22 +1794,6 @@ def weight_norm_along_axis(weights, target = None, axis = 0, norm = 1.0):
 
     return target
 
-def cudanet_init_random(seed = None):
-    """
-    Initialize and seed the random number generator.
-    """
-    if not seed:
-        _cudanet.init_random_no_seed()
-    else:
-        _cudanet.init_random(ct.c_ulonglong(seed))
-
-def cudanet_destroy_random():
-    """
-    Destroy the random number generator.
-    """
-    _cudanet.destroy_random()
-
-
 def cublas_shutdown():
     """
     Shut down Cublas.
@@ -1880,4 +1803,3 @@ def cublas_shutdown():
 
 _cudanet.cublas_init()
 array.ones = array(np.ones((MAX_ONES, 1), dtype=np.float32, order='C'))
-_cudanet.init_random_no_seed()

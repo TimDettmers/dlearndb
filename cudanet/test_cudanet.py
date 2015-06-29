@@ -166,7 +166,7 @@ class TestCudanet(object):
 
         m2.copy_to_host()
         print(m2.numpy_array)
-
+    '''
     @attr('reshapeadd')
     def test_dbm2(self):
         a = np.array(np.arange(20).reshape(10,2), dtype=np.float32, order='C')
@@ -181,6 +181,7 @@ class TestCudanet(object):
         m1.reshape((10,2))
         m1.copy_to_host()
         print(m1.numpy_array)
+    '''
 
     @attr('mat_vec')
     def test_mat_vec(self):
@@ -992,6 +993,7 @@ class TestCudanet(object):
         print("convolution error %f " % relerror)
         assert abs(relerror) < 1e-3, "Error in self.be.convolution exceeded threshold"
 
+    '''
     @attr('conv')
     def test_convolution(self):
         print("\nconvolution filter activations")
@@ -1107,7 +1109,8 @@ class TestCudanet(object):
         relerror = error/np.mean(np.abs(updates2))
         print("convolution error %f " % relerror)
         assert abs(relerror) < 1e-3, "Error in self.be.convolution exceeded threshold"
-
+    '''
+        
     @attr('divide')
     def test_divide(self):
         print('\divide:')
@@ -1723,7 +1726,6 @@ class TestCudanet(object):
     def test_dropout(self):
         print '\ndropout:'
         np.random.seed(0)
-        self.be.cudanet_init_random()
         m = 4
         k = 3
         a_u = np.array(np.random.uniform(size=(m, k)), dtype=np.float32, order='C')
@@ -1731,7 +1733,6 @@ class TestCudanet(object):
         m1.randomize_uniform_thresh(keepthresh=0.5)
         m1.copy_to_host()
         print m1.numpy_array
-        self.be.cudanet_destroy_random()
 
     @attr('maxscal')
     def test_maximum_scalar(self):
@@ -1946,3 +1947,41 @@ class TestCudanet(object):
                 assert np.max(np.abs(r0 - dr20.numpy_array)) < 10**-4, "Error in CUDAMatrix.%s exceeded threshold" % op
                 assert np.max(np.abs(r1 - dr21.numpy_array.T)) < 10**-4, "Error in CUDAMatrix.%s exceeded threshold" % op
             print('%s OK' % (op))
+            
+    @attr('rand')
+    def test_rand(self):        
+        B = self.be.random.rand(10,10000)
+        C = B.mean(1)
+        for m in C.data:
+            assert m < 0.53 and m > 0.47
+        
+        C = B.var(1)
+        for m in C.data:
+            assert m > 1/13. and m < 1/11. 
+            
+    @attr('randn')
+    def test_randn(self):        
+        B = self.be.random.randn(10,10000)
+        C = B.mean(1)
+        for m in C.data:
+            assert m < 0.1 and m > -0.1
+        
+        C = B.std(1)
+        for m in C.data:
+            assert m > 0.95 and m < 1.05 
+            
+            
+    @attr('normal')
+    def test_normal(self):        
+        B = self.be.random.normal(-17,83,(10,10000))
+        C = B.mean(1)
+        for m in C.data:
+            assert m < -15 and m > -19
+        
+        C = B.std(1)
+        for m in C.data:
+            assert m > 81 and m < 85 
+            
+            
+        
+        
