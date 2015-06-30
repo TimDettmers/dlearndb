@@ -313,10 +313,38 @@ extern int sign(cudanetmat* mat, cudanetmat* target) {
     mat->data_device->apply(NVMatrixOps::Sign(), *(target->data_device));
     return 0;
 }
-extern int apply_sigmoid(cudanetmat* mat, cudanetmat* target) {
+extern int apply_identity(cudanetmat* mat, cudanetmat* target) {
+    int errcheck = elementwise_check2(mat, target);
+    if (errcheck !=0) return errcheck;
+    mat->data_device->apply(NVMatrixOps::Identity(), *(target->data_device));
+    return 0;
+}
+extern int apply_fill(cudanetmat* mat, float fill_value) {
+    mat->data_device->apply(NVMatrixOps::Fill(fill_value));
+    return 0;
+}
+extern int apply_logistic(cudanetmat* mat, cudanetmat* target) {
     int errcheck = elementwise_check2(mat, target);
     if (errcheck !=0) return errcheck;
     mat->data_device->apply(NVMatrixOps::Logistic(), *(target->data_device));
+    return 0;
+}
+extern int apply_logistic_grad(cudanetmat* mat, cudanetmat* target) {
+    int errcheck = elementwise_check2(mat, target);
+    if (errcheck !=0) return errcheck;
+    mat->data_device->apply(NVMatrixOps::Logistic_grad(), *(target->data_device));
+    return 0;
+}
+extern int apply_rectified_linear(cudanetmat* mat, cudanetmat* target) {
+    int errcheck = elementwise_check2(mat, target);
+    if (errcheck !=0) return errcheck;
+    mat->data_device->apply(NVMatrixOps::RectifiedLinear(), *(target->data_device));
+    return 0;
+}
+extern int apply_rectified_linear_grad(cudanetmat* mat, cudanetmat* target) {
+    int errcheck = elementwise_check2(mat, target);
+    if (errcheck !=0) return errcheck;
+    mat->data_device->apply(NVMatrixOps::RectifiedLinear_grad(), *(target->data_device));
     return 0;
 }
 extern int apply_tanh(cudanetmat* mat, cudanetmat* target) {

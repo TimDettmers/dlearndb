@@ -36,34 +36,64 @@ class Logistic(ActivationFunc):
             
 class ReLU(ActivationFunc):      
     def __init__(self):  
-        super(ReLU, self).__init__(0.5, gpu.ReLU, gpu.ReLU_grad)      
+        super(ReLU, self).__init__(0.5, gpu.rectified_linear, gpu.rectified_linear_grad)      
         
 class Input(ActivationFunc): 
     def __init__(self):  
-        super(Input, self).__init__(0.2, gpu.linear, gpu.linear)
+        super(Input, self).__init__(0.2, gpu.identity, gpu.identity)
         
 class Linear(ActivationFunc): 
     def __init__(self):  
-        super(Linear, self).__init__(0.0, gpu.linear, gpu.linear)
+        super(Linear, self).__init__(0.0, gpu.identity, gpu.identity)
     def activation(self, previous_output, my_activation, my_output, useDropout): 
         self.gpu_func(previous_output, my_output); 
         
 class Softmax(ActivationFunc):
     def __init__(self):   
-        super(Softmax, self).__init__(0.0, gpu.softmax, gpu.linear)
+        super(Softmax, self).__init__(0.0, gpu.softmax, gpu.identity)
     def activation(self, previous_output, my_activation, my_output, useDropout): 
         self.gpu_func(previous_output, my_output); 
         
 class Code(ActivationFunc):
     def __init__(self):   
         #super(Code, self).__init__(0.0, gpu.double_ReLU, gpu.double_ReLU_grad)
-        super(Code, self).__init__(0.0, gpu.linear, gpu.linear)
+        super(Code, self).__init__(0.0, gpu.identity, gpu.identity)
         #super(Code, self).__init__(0.0, gpu.logistic, gpu.logistic_grad)
     def activation(self, previous_output, my_activation, my_output, useDropout): 
         self.gpu_func(previous_output, my_output); 
+'''
 
-
-
+'''
+class GradientSynchronizer(Thread):
+    def __init__(self):
+        super(GradientSynchronizer, self).__init__()
+        self.daemon = True
+        self.cancelled = False          
+        self.todo = []    
+        self.idx = 0
+        self.synchronizing = False
+        
+        pass
+                
+    def run(self):     
+        while not self.cancel(): 
+            if len(self.todo) > 0:
+                self.synchronizing = True
+                gpu.sync(self.todo[0][0], self.todo[0][1])
+                gpu.sync_streams()
+                self.todo.pop(0)
+                self.idx +=1
+                
+            sleep(0.001)
+                    
+    def cancel(self):
+        """End this timer thread"""        
+        return self.cancelled
+    
+    
+g = GradientSynchronizer()
+'''
+'''
 class Layer(object):
     def __init__(self, unitcount=0, activation_function=Input(), workdir = None, network_name = 'neural_net'):
         self.w_next = None
@@ -468,6 +498,5 @@ class Layer(object):
         
         
         
-
 
 '''

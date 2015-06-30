@@ -999,7 +999,8 @@ class array(object):
         """
 
         _cudanet.print_devmat(self.p_mat)
-	
+        
+def empty_like(A): return empty(A.shape)    
 def empty(shape):
     """
     Creates and returns a new array with the given shape.
@@ -1012,7 +1013,21 @@ def empty(shape):
         raise generate_exception(err_code)
 
     return array(mat)
+def zeros_like(A): return zeros(A.shape)  
+def zeros(shape):    
+    """
+    Creates and returns a new array with the given shape which is filled with zeros.
+    """
+    mat = empty(shape)
+    return fill(mat, 0.0)
 
+def ones_like(A): return ones(A.shape)  
+def ones(shape):    
+    """
+    Creates and returns a new array with the given shape which is filled with zeros.
+    """
+    mat = empty(shape)
+    return fill(mat, 1.0)
 
 def reformat(array, copy = True):
     """
@@ -1055,7 +1070,7 @@ def vdot(m1, m2):
 
     return res
 
-def sigmoid(mat, target = None):
+def logistic(mat, target = None):
     """
     Apply the logistic sigmoid to each element of the matrix mat.
     """
@@ -1063,7 +1078,74 @@ def sigmoid(mat, target = None):
     if not target:
         target = mat
 
-    err_code = _cudanet.apply_sigmoid(mat.p_mat, target.p_mat)
+    err_code = _cudanet.apply_logistic(mat.p_mat, target.p_mat)
+    if err_code:
+        raise generate_exception(err_code)
+
+    return target
+
+def fill(mat, fill_value):
+    """
+    Fill the matrix with the float value.
+    """
+
+    err_code = _cudanet.apply_fill(mat.p_mat, ct.c_float(fill_value))
+    if err_code:
+        raise generate_exception(err_code)
+
+    return mat
+
+def logistic_grad(mat, target = None):
+    """
+    Apply the logistic sigmoid gradient to each element of the matrix mat.
+    """
+
+    if not target:
+        target = mat
+
+    err_code = _cudanet.apply_logistic_grad(mat.p_mat, target.p_mat)
+    if err_code:
+        raise generate_exception(err_code)
+
+    return target
+
+def rectified_linear_grad(mat, target = None):
+    """
+    Apply the rectified linear gradient to each element of the matrix mat.
+    """
+
+    if not target:
+        target = mat
+
+    err_code = _cudanet.apply_rectified_linear_grad(mat.p_mat, target.p_mat)
+    if err_code:
+        raise generate_exception(err_code)
+
+    return target
+
+def rectified_linear(mat, target = None):
+    """
+    Apply the rectified linear gradient to each element of the matrix mat.
+    """
+
+    if not target:
+        target = mat
+
+    err_code = _cudanet.apply_rectified_linear(mat.p_mat, target.p_mat)
+    if err_code:
+        raise generate_exception(err_code)
+
+    return target
+
+def identity(mat, target = None):
+    """
+    Apply the rectified linear gradient to each element of the matrix mat.
+    """
+
+    if not target:
+        target = mat
+
+    err_code = _cudanet.apply_identity(mat.p_mat, target.p_mat)
     if err_code:
         raise generate_exception(err_code)
 

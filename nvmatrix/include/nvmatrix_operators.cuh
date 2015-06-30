@@ -21,6 +21,10 @@
  * * Quantization operation support
  * ---------------------------------------------------------------------------
  *
+ *  * ---------------------------------------------------------------------------
+ * Altered by Tim Dettmers 2015.  All rights reserved.
+ * ---------------------------------------------------------------------------
+ *
  */
 
 #ifndef NVMATRIX_OPERATORS_CUH
@@ -36,6 +40,17 @@ public:
         }
         __device__ inline float operator()(const float a) const {
             return  a > 0 ? fmaxf(0., a - p) : fminf(0., a + p);
+        }
+    };
+
+    class Fill {
+    private:
+        float _fill_value;
+    public:
+        Fill(float fill_value) : _fill_value(fill_value) {
+        }
+        __device__ inline float operator()(const float a) const {
+            return  _fill_value;
         }
     };
 
@@ -100,6 +115,27 @@ public:
     public:
         __device__ inline float operator()(const float a) const {
             return __fdividef(1.0f, 1.0f + __expf(-a));
+        }
+    };
+
+    class Logistic_grad {
+    public:
+        __device__ inline float operator()(const float a) const {
+            return a*(1.0f-a);
+        }
+    };
+
+    class RectifiedLinear {
+    public:
+        __device__ inline float operator()(const float a) const {
+            return a < 0.0f ? 0.0f : a;
+        }
+    };
+
+    class RectifiedLinear_grad {
+    public:
+        __device__ inline float operator()(const float a) const {
+            return a < 0.0f ? 0.0f : 1.0f;
         }
     };
 

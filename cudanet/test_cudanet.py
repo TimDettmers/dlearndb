@@ -1988,7 +1988,19 @@ class TestCudanet(object):
         print deviation
         assert deviation > -1000*1000*0.001 and deviation < 1000*1000*0.001
         
+    @attr('ones')
+    def test_ones(self):
+        A = self.be.ones((10,10))
+        np.testing.assert_array_equal(A.data, np.ones((10,10)), "ones(shape) not working!")
         
-            
+    @attr('zeros')
+    def test_zeros(self):
+        A = self.be.zeros((10,10))
+        np.testing.assert_array_equal(A.data, np.zeros((10,10)), "zeros(shape) not working!")
         
+    @attr('ones_like')
+    def test_ones_like(self):
+        A = self.be.random.rand(10,10)
+        B = self.be.ones_like(A)
+        np.testing.assert_array_equal(B.data, np.ones((10,10)), "ones_like(mat) not working!")
         
