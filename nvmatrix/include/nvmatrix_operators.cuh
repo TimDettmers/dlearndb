@@ -443,6 +443,19 @@ public:
         }
     };
 
+    class Dropout : public BinaryOp {
+    private:
+        const float threshold;
+    public:
+        Dropout(const float _threshold) : threshold(_threshold) {
+        }
+        Dropout() : threshold(0.5f){ // Compiler complains about no default constructor?
+        }
+        __device__ inline float operator()(const float a, const float b) const {
+            return b > threshold ? a : 0.0f;
+        }
+    };
+
     class WeightedAdd : public BinaryOp {
     private:
         const float scaleA, scaleB;

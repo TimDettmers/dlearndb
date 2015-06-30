@@ -11,6 +11,7 @@ import ctypes.util
 from ctypes import pythonapi
 import numpy as np
 import cudanet_random as random
+import layers.layer
 from cpp_interface import * 
 
 _cudanet = lib.cudanet
@@ -272,6 +273,7 @@ class array(object):
         Copy the source matrix from the host.
         """
         _cudanet.copy_from(self.p_mat, src.ctypes.data_as(ct.POINTER(ct.c_float)), ct.c_bool(is_trans))
+        
 
     def assign(self, val):
         """Assign val to self, where val can be a scalar or a CUDAMatrix
@@ -664,6 +666,9 @@ class array(object):
             err_code = _cudanet.mult_by_scalar(target.p_mat, ct.c_float(mult), target.p_mat)
             if err_code:
                 raise generate_exception(err_code)
+            
+        if axis == -1:
+            return target.data[0][0]
 
         return target
 
@@ -1793,6 +1798,18 @@ def weight_norm_along_axis(weights, target = None, axis = 0, norm = 1.0):
         raise generate_exception(err_code)
 
     return target
+
+
+def host_to_device(host, device):
+    host = np.float32(host)
+    _cudanet.set_host_mat(device.p_mat, host.ctypes.data_as(ct.POINTER(ct.c_float)))
+    _cudanet.copy_to_device_buffer(device.p_mat, device.p_mat)
+    
+def dropout(A, dropout_threshold=0.5, out=None):
+    if not out: out = random.rand(A.shape[0],A.shape[1])
+    random.randomize_uniform(out)
+    _cudanet.apply_dropout(A.p_mat, ct.c_float(dropout_threshold), out.p_mat)
+    return out
 
 def cublas_shutdown():
     """

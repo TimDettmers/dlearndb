@@ -2,6 +2,9 @@
  * ---------------------------------------------------------------------------
  * Copyright 2014 Nervana Systems Inc.  All rights reserved.
  * ---------------------------------------------------------------------------
+  * ---------------------------------------------------------------------------
+ * Altered by Tim Dettmers 2015.
+ * ---------------------------------------------------------------------------
  */
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <Python.h>
@@ -204,6 +207,12 @@ extern int copy_to_device(cudanetmat* mat) {
     return 0;
 }
 
+extern int copy_to_device_buffer(cudanetmat* host_buffer, cudanetmat* device_buffer)
+{
+    device_buffer->data_device->copyFromHost(*(host_buffer->data_host), false);
+    return 0;
+}
+
 extern int copy_from(cudanetmat* mat, float* data, bool is_trans) {
     Matrix mat_data(data, (int64) mat->size[0], (int64) mat->size[1], is_trans);
     mat->data_device->copyFromHost(mat_data, false);
@@ -322,6 +331,14 @@ extern int apply_soft_threshold(cudanetmat* mat, float alpha, cudanetmat* target
     mat->data_device->apply(NVMatrixOps::SoftThreshold(alpha), *(target->data_device));
     return 0;
 }
+
+extern int apply_dropout(cudanetmat* mat, float threshold, cudanetmat* rdm_uniform_and_target) {
+    int errcheck = elementwise_check2(mat, rdm_uniform_and_target);
+    if (errcheck !=0) return errcheck;
+    mat->data_device->applyBinary(NVMatrixBinaryOps::Dropout(threshold), *(rdm_uniform_and_target->data_device), *(rdm_uniform_and_target->data_device));
+    return 0;
+}
+
 extern int apply_abs(cudanetmat* mat, cudanetmat* target) {
     int errcheck = elementwise_check2(mat, target);
     if (errcheck !=0) return errcheck;

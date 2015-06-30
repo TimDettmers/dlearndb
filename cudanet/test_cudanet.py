@@ -79,9 +79,7 @@ def hsum(hmat):
 
 
 def dsum(dmat):
-    dresult = dmat.sum(axis=None)
-    dresult.copy_to_host()
-    return dresult.numpy_array[0][0]
+    return dmat.sum()
 
 def squish(data, nifm):
     assert data.shape[1] % nifm == 0
@@ -697,7 +695,7 @@ class TestCudanet(object):
     def dsse(self, outputs, targets):
         diff = self.be.empty(outputs.shape)
         outputs.subtract(targets, target=diff)
-        return (diff.mult(diff)).sum(axis=None).mult(0.5)
+        return (diff.mult(diff)).sum()*0.5
 
 
     def dsse_de(self, outputs, targets):
@@ -1234,14 +1232,12 @@ class TestCudanet(object):
         m1 = self.be.array(a)
         m2 = m1.sum(axis=0)
         m3 = m2.sum(axis=1)
-        m4 = m1.sum(axis=None)
         m2.copy_to_host()
-        m3.copy_to_host()
-        m4.copy_to_host()
+        m3.copy_to_host()        
         # print(m2.numpy_array, a.sum(axis=0))
         # print(m3.numpy_array, a.sum(axis=1)    )
         dval = m3.numpy_array[0][0]
-        dval2 = m4.numpy_array[0][0]
+        dval2 = m1.sum()
         print('hval', hval, 'dval', dval, 'dval2', dval2)
 
         assert np.abs(hval - dval) < 10**-2, "Error in sum exceeded threshold"
@@ -1722,18 +1718,6 @@ class TestCudanet(object):
 
         assert np.max(np.abs(ac - m2.numpy_array)) < 10**-5, "Error in CUDAMatrix.clip exceeded threshold"
 
-    @attr('dropout')
-    def test_dropout(self):
-        print '\ndropout:'
-        np.random.seed(0)
-        m = 4
-        k = 3
-        a_u = np.array(np.random.uniform(size=(m, k)), dtype=np.float32, order='C')
-        m1 = self.be.array(np.zeros_like(a_u))
-        m1.randomize_uniform_thresh(keepthresh=0.5)
-        m1.copy_to_host()
-        print m1.numpy_array
-
     @attr('maxscal')
     def test_maximum_scalar(self):
         print('\nmax:')
@@ -1976,12 +1960,35 @@ class TestCudanet(object):
         B = self.be.random.normal(-17,83,(10,10000))
         C = B.mean(1)
         for m in C.data:
-            assert m < -15 and m > -19
+            print m
+            assert m < -14 and m > -20
         
         C = B.std(1)
         for m in C.data:
-            assert m > 81 and m < 85 
+            assert m > 80 and m < 86 
             
+    @attr('dropout')
+    def test_dropout(self):
+        A = self.be.random.rand(1000,1000)
+        out = self.be.dropout(A, dropout_threshold=0.17)
+        out.greater_than(0, out)
+        nonzero = out.sum()
+        expectation = 1000*1000*(1.-0.17)
+        deviation = nonzero-expectation
+        print deviation
+        assert deviation > -1000*1000*0.001 and deviation < 1000*1000*0.001
+        
+        
+        
+        self.be.dropout(A, dropout_threshold=0.83, out=out)
+        out.greater_than(0, out)
+        nonzero = out.sum()
+        expectation = 1000*1000*(1.-0.83)
+        deviation = nonzero-expectation
+        print deviation
+        assert deviation > -1000*1000*0.001 and deviation < 1000*1000*0.001
+        
+        
             
         
         
