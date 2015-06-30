@@ -22,7 +22,7 @@ class array(object):
     numbers on a GPU.
     """
 
-    def __init__(self, array, copy_to_device = True, copy_on_host = True):
+    def __init__(self, array, copy_to_device=True, copy_on_host=True):
         """
         Initializes a new matrix object in one of two ways. If array is a numpy
         ndarray, memory for a matrix with the same dimensions is allocated on
@@ -119,9 +119,24 @@ class array(object):
         self.subtract(other)
         return self
     
+    def __eq__(self, other):         
+        out = self.copy(self) 
+        out.equal(other)
+        return out
+    
+    def __gt__(self, other):         
+        out = self.copy(self) 
+        out.greater_than(other)
+        return out    
+    
+    def __lt__(self, other):    
+        out = self.copy(self) 
+        out.less_than(other)
+        return out
+    
     def __getitem__(self, selectors):        
         dims = 1
-        if isinstance(selectors,slice): dims = 1
+        if isinstance(selectors, slice): dims = 1
         else: dims = 2 
         mat = self
         
@@ -129,19 +144,19 @@ class array(object):
         else: rows = selectors
         
         if rows.start == rows.stop: 
-            ret = empty((0,0))
-            ret.mat.size[0] = rows.stop-rows.start
+            ret = empty((0, 0))
+            ret.mat.size[0] = rows.stop - rows.start
             if dims > 1:
                 cols = selectors[1]
-                ret.mat.size[1] = cols.stop-cols.start
+                ret.mat.size[1] = cols.stop - cols.start
             return ret
         mat = mat.row_slice_view(rows.start, rows.stop, include_host=False)
         if dims > 1:
             cols = selectors[1]
             if cols.start == cols.stop: 
-                ret = empty((0,0))
-                ret.mat.size[0] = rows.stop-rows.start
-                ret.mat.size[1] = cols.stop-cols.start
+                ret = empty((0, 0))
+                ret.mat.size[0] = rows.stop - rows.start
+                ret.mat.size[1] = cols.stop - cols.start
                 return ret
             mat = mat.col_slice_view(cols.start, cols.stop, include_host=False)
         return mat
@@ -216,7 +231,7 @@ class array(object):
             # allocate host storage if necessary
             m = self.mat.size[0]
             n = self.mat.size[1]
-            self.numpy_array = np.empty((m, n), dtype=np.float32, order = 'C')
+            self.numpy_array = np.empty((m, n), dtype=np.float32, order='C')
             _cudanet.set_host_mat(self.p_mat, self.numpy_array.ctypes.data_as(ct.POINTER(ct.c_float)))
 
             self.mat.on_host = 1
@@ -253,7 +268,7 @@ class array(object):
 
         return pythonapi.PyMemoryView_FromBuffer(ctypes.byref(pybuffer))
 
-    def copy(self, include_host = False):
+    def copy(self, include_host=False):
         """
         Create a copy of the matrix on GPU. If include_host is True, also
         creates a copy of the matrix on CPU if there was any.
@@ -309,7 +324,7 @@ class array(object):
         if err_code:
             raise generate_exception(err_code)
 
-    def mult_by_scalar(self, alpha, target = None):
+    def mult_by_scalar(self, alpha, target=None):
         """
         Multiply the matrix by a scalar.
         """
@@ -322,14 +337,14 @@ class array(object):
             raise generate_exception(err_code)
 
         return target
-    def dot(self, mat2, target = None):
+    def dot(self, mat2, target=None):
         """
         Multiply the matrix by mat2 from the right.
         """
 
         return dot(self, mat2, target)
 
-    def add_dot(self, m1, m2, mult = 1., beta = 1.):
+    def add_dot(self, m1, m2, mult=1., beta=1.):
         """
         Add the dot product of m1 and m2 to the matrix, scaled by mult.
         Self is scaled by beta before adding anything.
@@ -341,15 +356,15 @@ class array(object):
 
         return self
 
-    def subtract_dot(self, m1, m2, mult = 1., beta = 1.):
+    def subtract_dot(self, m1, m2, mult=1., beta=1.):
         """
         Subtract the dot product of m1 and m2 from the matrix, scaled by mult.
         Self is scaled by beta before subtracting anything.
         """
         
-        return self.add_dot(m1, m2, mult = -1. * mult, beta = beta)
+        return self.add_dot(m1, m2, mult=-1. * mult, beta=beta)
 
-    def add_mult(self, mat2, alpha = 1., beta = 1.):
+    def add_mult(self, mat2, alpha=1., beta=1.):
         """
         Add multiple of mat2 to the matrix.
         """
@@ -360,7 +375,7 @@ class array(object):
 
         return self
     
-    def subtract_mult(self, mat2, alpha = 1.):
+    def subtract_mult(self, mat2, alpha=1.):
         """
         Subtract a multiple of mat2 from the matrix.
         """
@@ -379,7 +394,7 @@ class array(object):
             raise generate_exception(err_code)
         return target
 
-    def add(self, val, target = None):
+    def add(self, val, target=None):
         """Add val to self, where val can be a scalar or a array with the
         same dimensions as self. """
 
@@ -401,7 +416,7 @@ class array(object):
 
         return target
 
-    def subtract(self, val, target = None):
+    def subtract(self, val, target=None):
         """Subtract val from self, where val can be a scalar or a array with
         the same dimensions as self. """
 
@@ -414,7 +429,7 @@ class array(object):
             elif val.shape[0] == 1 or val.shape[1] == 1:
                 err_code = _cudanet.mat_vector_op(self.p_mat, val.p_mat, ct.c_float(1.0), target.p_mat, ct.c_char('s'))
         elif isinstance(val, (np.int32, np.float32, int, float)):
-            err_code = _cudanet.add_scalar(self.p_mat, ct.c_float(-1*val), target.p_mat)
+            err_code = _cudanet.add_scalar(self.p_mat, ct.c_float(-1 * val), target.p_mat)
         else:
             raise ValueError("Value must be of type CUDAMatrix, int, or float.")
 
@@ -423,7 +438,7 @@ class array(object):
 
         return target
 
-    def divide(self, val, target = None):
+    def divide(self, val, target=None):
         """Divide self by val, where val can be a scalar or a array with the
         same dimensions as self. """
 
@@ -445,7 +460,7 @@ class array(object):
 
         return target
 
-    def mult(self, val, target = None):
+    def mult(self, val, target=None):
         """Multiply self by val, where val can be a scalar or a array with
         the same dimensions as self. """
 
@@ -467,7 +482,7 @@ class array(object):
 
         return target
 
-    def reciprocal(self, target = None):
+    def reciprocal(self, target=None):
         """Return the reciprocal """
 
         if not target:
@@ -480,7 +495,7 @@ class array(object):
 
         return target
 
-    def slice_view(self, first_row, last_row, first_col, last_col, include_host = False):
+    def slice_view(self, first_row, last_row, first_col, last_col, include_host=False):
         """
         Creates a view into a consecutive range of columns of an existing
         matrix on GPU. If include_host is set to True, also creates a view
@@ -508,13 +523,13 @@ class array(object):
 
         return new_mat
 
-    def col_slice_view(self, first_col, last_col, include_host = False):
+    def col_slice_view(self, first_col, last_col, include_host=False):
         return self.slice_view(0, self.mat.size[0], first_col, last_col, include_host)
 
-    def row_slice_view(self, first_row, last_row, include_host = False):
+    def row_slice_view(self, first_row, last_row, include_host=False):
         return self.slice_view(first_row, last_row, 0, self.mat.size[1], include_host)
 
-    def slice(self, first_col, last_col, include_host = False):
+    def slice(self, first_col, last_col, include_host=False):
         """
         Creates a view into a consecutive range of columns of an existing
         matrix on GPU. If include_host is set to True, also creates a view
@@ -545,7 +560,7 @@ class array(object):
 
         return new_mat
 
-    def get_col_slice(self, start, end, target = None):
+    def get_col_slice(self, start, end, target=None):
         """
         Get the columns with indices start through end. If target is not provided
         memory for a new matrix will be allocated.
@@ -553,7 +568,7 @@ class array(object):
         height = self.shape[0]
 
         if not target:
-            target = empty((height, end-start))
+            target = empty((height, end - start))
 
         err_code = _cudanet.get_col_slice_copy(self.p_mat, target.p_mat, ct.c_int(start), ct.c_int(end))
         if err_code:
@@ -576,7 +591,7 @@ class array(object):
 
         return self
 
-    def get_row_slice(self, start, end, target = None):
+    def get_row_slice(self, start, end, target=None):
         """
         Get the rows with indices start through end. If target is not provided
         memory for a new matrix will be allocated.
@@ -584,7 +599,7 @@ class array(object):
         width = self.shape[1]
 
         if not target:
-            target = empty((end-start, width))
+            target = empty((end - start, width))
 
         err_code = _cudanet.get_row_slice_copy(self.p_mat, target.p_mat, ct.c_int(start), ct.c_int(end))
         if err_code:
@@ -607,7 +622,7 @@ class array(object):
         return self
 
     @deprecated
-    def div_by_scalar(self, alpha, target = None):
+    def div_by_scalar(self, alpha, target=None):
         """
         Divide the matrix by a scalar.
         """
@@ -622,7 +637,7 @@ class array(object):
         return target
 
     @deprecated
-    def add_scalar(self, alpha, target = None):
+    def add_scalar(self, alpha, target=None):
         """
         Increment the matrix by a scalar.
         """
@@ -636,7 +651,7 @@ class array(object):
 
         return target
 
-    def sum(self, axis=None, target = None, mult = 1.):
+    def sum(self, axis=None, target=None, mult=1.):
         """
         Sum the matrix along the given dimension, where 0 represents the leading
         dimension and 1 represents the non-leading dimension. If a target is
@@ -654,7 +669,7 @@ class array(object):
                 target = empty((m, 1))
         elif axis == None:
             if not target:
-                target = empty((1,1))
+                target = empty((1, 1))
             axis = -1
 
         err_code = _cudanet.sum(self.p_mat, target.p_mat, ct.c_int(axis))
@@ -662,7 +677,7 @@ class array(object):
         if err_code:
             raise generate_exception(err_code)
 
-        if (mult != 1. ):
+        if (mult != 1.):
             err_code = _cudanet.mult_by_scalar(target.p_mat, ct.c_float(mult), target.p_mat)
             if err_code:
                 raise generate_exception(err_code)
@@ -672,7 +687,7 @@ class array(object):
 
         return target
 
-    def sumsq(self, axis=None, target = None, mult = 1.):
+    def sumsq(self, axis=None, target=None, mult=1.):
         """
         Sum the matrix along the given dimension, where 0 represents the leading
         dimension and 1 represents the non-leading dimension. If a target is
@@ -689,7 +704,7 @@ class array(object):
                 target = empty((m, 1))
         elif axis == None:
             if not target:
-                target = empty((1,1))
+                target = empty((1, 1))
             axis = -1
 
         err_code = _cudanet.sumsq(self.p_mat, target.p_mat, ct.c_int(axis))
@@ -697,14 +712,14 @@ class array(object):
         if err_code:
             raise generate_exception(err_code)
 
-        if (mult != 1. ):
+        if (mult != 1.):
             err_code = _cudanet.mult_by_scalar(target.p_mat, ct.c_float(mult), target.p_mat)
             if err_code:
                 raise generate_exception(err_code)
 
         return target
 
-    def mean(self, axis=None, target = None):
+    def mean(self, axis=None, target=None):
         """
         Compute the mean of the matrix along the given dimension, where 0
         represents the leading dimension and 1 represents the non-leading
@@ -721,16 +736,16 @@ class array(object):
                 target = empty((m, 1))
         elif axis == None:
             if not target:
-                target = empty((1,1))
+                target = empty((1, 1))
             axis = -1
 
-        err_code =  _cudanet.mean(self.p_mat, target.p_mat, ct.c_int(axis))
+        err_code = _cudanet.mean(self.p_mat, target.p_mat, ct.c_int(axis))
         if err_code:
             raise generate_exception(err_code)
 
         return target
 
-    def var(self, axis= None, mean=None, target = None):
+    def var(self, axis=None, mean=None, target=None):
         """
         Compute the variance of the matrix along the given dimension, where 0
         represents the leading dimension and 1 represents the non-leading
@@ -750,7 +765,7 @@ class array(object):
         else:
             raise ValueError("Axis must be provided (0 or 1)")
 
-        err_code =  _cudanet.var(self.p_mat, mean.p_mat, target.p_mat, ct.c_int(axis))
+        err_code = _cudanet.var(self.p_mat, mean.p_mat, target.p_mat, ct.c_int(axis))
         if err_code:
             raise generate_exception(err_code)
 
@@ -761,8 +776,8 @@ class array(object):
         pow(target, 0.5, target)
         return target        
         
-
-    def equals(self, val, target = None):
+    
+    def equal(self, val, target=None):
         """
         Perform the operation target = 1. * (self == val), where val can be a matrix or a scalar.
         """
@@ -780,7 +795,7 @@ class array(object):
 
         return target
 
-    def less_than(self, val, target = None):
+    def less_than(self, val, target=None):
         """
         Perform the operation target = 1. * (self < val), where val can be a matrix or a scalar.
         """
@@ -798,7 +813,7 @@ class array(object):
 
         return target
 
-    def greater_than(self, val, target = None):
+    def greater_than(self, val, target=None):
         """
         Perform the operation target = 1. * (self > val), where val can be a matrix or a scalar.
         """
@@ -816,7 +831,7 @@ class array(object):
 
         return target
 
-    def min(self, axis, target = None):
+    def min(self, axis, target=None):
         """
         Find the minimum value along the given dimension, where 0 represents the
         leading dimension and 1 represents the non-leading dimension. If a target
@@ -834,16 +849,16 @@ class array(object):
                 target = empty((m, 1))
         elif axis == None:
             if not target:
-                target = empty((1,1))
+                target = empty((1, 1))
             axis = -1
 
-        err_code =  _cudanet.min_by_axis(self.p_mat, target.p_mat, ct.c_int(axis))
+        err_code = _cudanet.min_by_axis(self.p_mat, target.p_mat, ct.c_int(axis))
         if err_code:
             raise generate_exception(err_code)
 
         return target
 
-    def max(self, axis, target = None):
+    def max(self, axis=None, target=None):
         """
         Find the maximum value along the given dimension, where 0 represents the
         leading dimension and 1 represents the non-leading dimension. If a target
@@ -861,16 +876,16 @@ class array(object):
                 target = empty((m, 1))
         elif axis == None:
             if not target:
-                target = empty((1,1))
+                target = empty((1, 1))
             axis = -1
 
-        err_code =  _cudanet.max_by_axis(self.p_mat, target.p_mat, ct.c_int(axis))
+        err_code = _cudanet.max_by_axis(self.p_mat, target.p_mat, ct.c_int(axis))
         if err_code:
             raise generate_exception(err_code)
 
         return target
 
-    def mean_norm(self, axis, target = None):
+    def mean_norm(self, axis, target=None):
         """
         Find the maximum value along the given dimension, where 0 represents the
         leading dimension and 1 represents the non-leading dimension. If a target
@@ -880,9 +895,9 @@ class array(object):
         m, n = self.shape
 
         if not target: 
-            target = empty((m,n))
+            target = empty((m, n))
 
-        err_code =  _cudanet.mean_norm(self.p_mat, target.p_mat, ct.c_int(axis))
+        err_code = _cudanet.mean_norm(self.p_mat, target.p_mat, ct.c_int(axis))
         if err_code:
             raise generate_exception(err_code)
 
@@ -912,7 +927,7 @@ class array(object):
 
         return res
 
-    def argmax(self, axis, target = None):
+    def argmax(self, axis, target=None):
         """
         Find the index of the maximum value along the given dimension, where 0
         represents the leading dimension and 1 represents the non-leading
@@ -929,13 +944,13 @@ class array(object):
             if not target:
                 target = empty((m, 1))
 
-        err_code =  _cudanet.argmax_by_axis(self.p_mat, target.p_mat, ct.c_int(axis))
+        err_code = _cudanet.argmax_by_axis(self.p_mat, target.p_mat, ct.c_int(axis))
         if err_code:
             raise generate_exception(err_code)
 
         return target
 
-    def argmin(self, axis, target = None):
+    def argmin(self, axis, target=None):
         """
         Find the index of the maximum value along the given dimension, where 0
         represents the leading dimension and 1 represents the non-leading
@@ -953,7 +968,7 @@ class array(object):
             if not target:
                 target = empty((m, 1))
 
-        err_code =  _cudanet.argmin_by_axis(self.p_mat, target.p_mat, ct.c_int(axis))
+        err_code = _cudanet.argmin_by_axis(self.p_mat, target.p_mat, ct.c_int(axis))
         if err_code:
             raise generate_exception(err_code)
 
@@ -1028,8 +1043,8 @@ def ones(shape):
     """
     mat = empty(shape)
     return fill(mat, 1.0)
-
-def reformat(array, copy = True):
+    
+def reformat(array, copy=True):
     """
     Returns array as a float32 array in FORTRAN order.
     If copy is set to False, the array will only be copied if it is not already
@@ -1037,7 +1052,7 @@ def reformat(array, copy = True):
     """
     return np.array(array, dtype=np.float32, order='F', copy=copy)
 
-def dot(m1, m2, target = None, beta = 0., alpha = 1.):
+def dot(m1, m2, target=None, beta=0., alpha=1.):
     """
     Find the dot product between m1 and m2 and store in target:
     target = beta*target + alpha*(m1 m2)
@@ -1070,7 +1085,7 @@ def vdot(m1, m2):
 
     return res
 
-def logistic(mat, target = None):
+def logistic(mat, target=None):
     """
     Apply the logistic sigmoid to each element of the matrix mat.
     """
@@ -1095,7 +1110,7 @@ def fill(mat, fill_value):
 
     return mat
 
-def logistic_grad(mat, target = None):
+def logistic_grad(mat, target=None):
     """
     Apply the logistic sigmoid gradient to each element of the matrix mat.
     """
@@ -1109,7 +1124,7 @@ def logistic_grad(mat, target = None):
 
     return target
 
-def rectified_linear_grad(mat, target = None):
+def rectified_linear_grad(mat, target=None):
     """
     Apply the rectified linear gradient to each element of the matrix mat.
     """
@@ -1123,7 +1138,7 @@ def rectified_linear_grad(mat, target = None):
 
     return target
 
-def rectified_linear(mat, target = None):
+def rectified_linear(mat, target=None):
     """
     Apply the rectified linear gradient to each element of the matrix mat.
     """
@@ -1137,7 +1152,7 @@ def rectified_linear(mat, target = None):
 
     return target
 
-def identity(mat, target = None):
+def identity(mat, target=None):
     """
     Apply the rectified linear gradient to each element of the matrix mat.
     """
@@ -1151,7 +1166,7 @@ def identity(mat, target = None):
 
     return target
 
-def tanh(mat, target = None):
+def tanh(mat, target=None):
     """
     Apply the tanh to each element of the matrix mat.
     """
@@ -1165,7 +1180,7 @@ def tanh(mat, target = None):
 
     return target
 
-def clip_range(mat, lower, upper, target = None):
+def clip_range(mat, lower, upper, target=None):
     """
     Clip each element of the matrix to min of lower and max of upper
 
@@ -1180,7 +1195,7 @@ def clip_range(mat, lower, upper, target = None):
 
     return target
 
-def soft_threshold(mat, alpha, target = None):
+def soft_threshold(mat, alpha, target=None):
     """
     Apply the soft threshold function to each element of the matrix:
 
@@ -1196,7 +1211,7 @@ def soft_threshold(mat, alpha, target = None):
 
     return target
 
-def abs(mat, target = None):
+def abs(mat, target=None):
     """
     Apply abs to each element of the matrix mat.
     """
@@ -1210,7 +1225,7 @@ def abs(mat, target = None):
 
     return target
 
-def log_1_plus_exp(mat, target = None):
+def log_1_plus_exp(mat, target=None):
     """
     Apply log(1+exp(x)) to each element of the matrix mat.
     """
@@ -1224,7 +1239,7 @@ def log_1_plus_exp(mat, target = None):
 
     return target
 
-def maximum(mat, mat2, target = None):
+def maximum(mat, mat2, target=None):
     """
     Compute the element-wise max of mat and mat2
     """
@@ -1238,7 +1253,7 @@ def maximum(mat, mat2, target = None):
 
     return target
 
-def minimum(mat, mat2, target = None):
+def minimum(mat, mat2, target=None):
     """
     Compute the element-wise max of mat and mat2
     """
@@ -1252,7 +1267,7 @@ def minimum(mat, mat2, target = None):
 
     return target
 
-def maximum_scalar(mat, compval, target = None):
+def maximum_scalar(mat, compval, target=None):
     """
     Compute the element-wise max of mat and compval (scalar)
     """
@@ -1266,7 +1281,7 @@ def maximum_scalar(mat, compval, target = None):
 
     return target
 
-def minimum_scalar(mat, compval, target = None):
+def minimum_scalar(mat, compval, target=None):
     """
     Compute the minimum between mat and compval (scalar) elementwise
     """
@@ -1280,7 +1295,7 @@ def minimum_scalar(mat, compval, target = None):
 
     return target
 
-def log(mat, target = None):
+def log(mat, target=None):
     """
     Find the natural logarithm of each element of the matrix mat.
     """
@@ -1294,7 +1309,7 @@ def log(mat, target = None):
 
     return target
 
-def exp(mat, target = None):
+def exp(mat, target=None):
     """
     Apply the exponential function to each element of the matrix mat.
     """
@@ -1308,7 +1323,7 @@ def exp(mat, target = None):
 
     return target
 
-def sqrt(mat, target = None):
+def sqrt(mat, target=None):
     """
     Compute the square root of each element of the matrix mat.
     """
@@ -1322,7 +1337,7 @@ def sqrt(mat, target = None):
 
     return target
 
-def pow(mat, p, target = None):
+def pow(mat, p, target=None):
     """
     If p is a scalar, compute the 'p'th power of each element of the matrix mat,
     otherwise raise each element of the matrix mat to the power given by the
@@ -1344,7 +1359,7 @@ def pow(mat, p, target = None):
 
     return target
 
-def cross_entropy(output, labels, target = None):
+def cross_entropy(output, labels, target=None):
     """
     Compute the cross entropy between output and labels.  Can do multiple examples at a time.
     Dimensions of output and labels must match and the target collapses along the row axis
@@ -1360,7 +1375,7 @@ def cross_entropy(output, labels, target = None):
 
     return target
 
-def where(condition_mat, if_mat, else_mat, target = None):
+def where(condition_mat, if_mat, else_mat, target=None):
     """
     For each element i, j, store if_math[i, j] in target[i,j] if
     condition_mat[i, j] is True, and else_mat[i, j] otherwise.
@@ -1576,7 +1591,7 @@ def local_contrast_norm_undo(meanDiffs, denoms, respGrads, respActs, target, cha
     Target as  (KxPxQ) Rows x (N) Colums in 'C' order
     int channels, sizeX, float scale, power
     """
-    err_code = _cudanet.local_contrast_norm_undo(meanDiffs.p_mat, denoms.p_mat, 
+    err_code = _cudanet.local_contrast_norm_undo(meanDiffs.p_mat, denoms.p_mat,
                                                  respGrads.p_mat,
                                                  respActs.p_mat, target.p_mat,
                                                  ct.c_int(channels),
@@ -1690,7 +1705,7 @@ def deconvolve_wts(hidActs, imgs, target, imgSizeY, numModulesY, numModulesX,
 
     return target
 
-def xcov(X, Y, target = None, normX=1, normY=1, normAll=-1):
+def xcov(X, Y, target=None, normX=1, normY=1, normAll=-1):
     """
     Find the xcov between X and Y and store in target:
     X is M1 x N
@@ -1747,29 +1762,29 @@ def split(mat, nsplit, axis):
     original, they are not copied, and therefore don't "own" their data
     """
     # Check validity of axis
-    if (axis!=0 and axis!=1):
+    if (axis != 0 and axis != 1):
         raise generate_exception(-12)
 
-    otheraxis = 1 if axis==0 else 0
+    otheraxis = 1 if axis == 0 else 0
 
     if (mat.shape[axis] % nsplit != 0):
         print("Dimension not divisible %d vs %d".format(mat.shape[axis],
                                                         nsplit))
         raise generate_exception(-12)
 
-    subdim = mat.shape[axis]/nsplit
+    subdim = mat.shape[axis] / nsplit
 
     split_list = []
 
     for i in range(nsplit):
-        if (axis==0):
-            split_list.append(mat.slice_view(subdim*i, subdim*(i+1), 0, mat.shape[1]))
+        if (axis == 0):
+            split_list.append(mat.slice_view(subdim * i, subdim * (i + 1), 0, mat.shape[1]))
         else:
-            split_list.append(mat.slice_view(0, mat.shape[0], subdim*i, subdim*(i+1)))
+            split_list.append(mat.slice_view(0, mat.shape[0], subdim * i, subdim * (i + 1)))
 
     return split_list
 
-def stack(cmats, axis, target = None):
+def stack(cmats, axis, target=None):
     """
     Meant to provide functionality similar to vstack and hstack in numpy
     Can stack along either axis -- no default provided
@@ -1777,24 +1792,24 @@ def stack(cmats, axis, target = None):
     """
 
     # Check validity of axis
-    if (axis!=0 and axis!=1):
+    if (axis != 0 and axis != 1):
         raise generate_exception(-12)
 
-    otheraxis = 1 if axis==0 else 0
+    otheraxis = 1 if axis == 0 else 0
 
     # Now check consistency of dimensions, samedims should have all values
     # be the same, since we are concatenating along the other dim
     samedims = [i.shape[otheraxis] for i in cmats]
-    if (all([i==samedims[0] for i in samedims]) == False):
+    if (all([i == samedims[0] for i in samedims]) == False):
         print("Axes not the same along dimension %d".format(axis))
         raise generate_exception(-12)
 
     diffdims = [i.shape[axis] for i in cmats]
 
-    if axis==0:
-        totalshape = (sum(diffdims), samedims[0])
+    if axis == 0:
+        totalshape = (np.sum(diffdims), samedims[0])
     else:
-        totalshape = (samedims[0], sum(diffdims))
+        totalshape = (samedims[0], np.sum(diffdims))
 
     if not target:
         target = empty(totalshape)
@@ -1807,7 +1822,7 @@ def stack(cmats, axis, target = None):
     idxs = np.insert(np.array(diffdims), 0, 0)
     idxs = np.cumsum(idxs)
     for (submat, startidx, endidx) in zip(cmats, idxs[:-1], idxs[1:]):
-        if axis==0:
+        if axis == 0:
             target.set_row_slice(startidx, endidx, submat)
         else:
             target.set_col_slice(startidx, endidx, submat)
@@ -1830,7 +1845,7 @@ def multi_way_error(probs, labels, labellogprob, top1probs, topkprobs, topk):
     if err_code:
         raise generate_exception(err_code)
 
-def softmax(mat, target = None, axis=0):
+def softmax(mat, target=None, axis=0):
     if not target:
         target = empty(mat.shape)
         
@@ -1840,7 +1855,7 @@ def softmax(mat, target = None, axis=0):
 
     return target
 
-def softmax_grad(acts, actsGrad, target = None):
+def softmax_grad(acts, actsGrad, target=None):
     if not target:
         target = empty(acts.shape)
 
@@ -1850,7 +1865,7 @@ def softmax_grad(acts, actsGrad, target = None):
 
     return target
 
-def crossent_cost(labels, outputs, target = None):
+def crossent_cost(labels, outputs, target=None):
     if not target:
         n = _cudanet.get_nonleading_dimension(labels.p_mat)
         target = empty((1, n))
@@ -1861,7 +1876,7 @@ def crossent_cost(labels, outputs, target = None):
 
     return target
 
-def crossent_cost_grad(labels, outputs, target = None):
+def crossent_cost_grad(labels, outputs, target=None):
     if not target:
         target = empty(labels.shape)
 
@@ -1871,7 +1886,7 @@ def crossent_cost_grad(labels, outputs, target = None):
 
     return target
 
-def weight_norm_along_axis(weights, target = None, axis = 0, norm = 1.0):
+def weight_norm_along_axis(weights, target=None, axis=0, norm=1.0):
     if not target:
         target = empty(weights.shape)
 
@@ -1888,9 +1903,61 @@ def host_to_device(host, device):
     _cudanet.copy_to_device_buffer(device.p_mat, device.p_mat)
     
 def dropout(A, dropout_threshold=0.5, out=None):
-    if not out: out = random.rand(A.shape[0],A.shape[1])
+    if not out: out = random.rand(A.shape[0], A.shape[1])
     random.randomize_uniform(out)
     _cudanet.apply_dropout(A.p_mat, ct.c_float(dropout_threshold), out.p_mat)
+    return out
+
+def add(A, B, out=None):
+    if not out: out = empty_like(A)
+    A.add(B, out)
+    return out
+
+def multiply(A, B, out=None):
+    if not out: out = empty_like(A)
+    A.mult(B, out)
+    return out
+
+def subtract(A, B, out=None):
+    if not out: out = empty_like(A)
+    A.subtract(B, out)
+    return out
+
+def divide(A, B, out=None):
+    if not out: out = empty_like(A)
+    A.divide(B, out)
+    return out
+
+def argmax(A, axis=None, out=None):    
+    A.argmax(axis, out)
+    return out
+
+def argmin(A, axis=None, out=None):    
+    A.argmin(axis, out)
+    return out
+
+def sum(A, axis=None, out=None):    
+    A.sum(axis, out)
+    return out
+
+def mean(A, axis=None, out=None):    
+    A.mean(axis, out)
+    return out
+
+def std(A, axis=None, out=None):    
+    A.std(axis, out)
+    return out
+
+def var(A, axis=None, out=None):    
+    A.var(axis, out)
+    return out
+
+def max(A, axis=None, out=None):    
+    A.max(axis, out)
+    return out
+
+def min(A, axis=None, out=None):    
+    A.max(axis, out)
     return out
 
 def cublas_shutdown():

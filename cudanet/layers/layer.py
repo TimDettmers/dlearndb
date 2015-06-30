@@ -62,7 +62,6 @@ class Code(ActivationFunc):
     def activation(self, previous_output, my_activation, my_output, useDropout): 
         self.gpu_func(previous_output, my_output); 
 '''
-
 '''
 class GradientSynchronizer(Thread):
     def __init__(self):
@@ -498,5 +497,6 @@ class Layer(object):
         
         
         
+
 
 '''

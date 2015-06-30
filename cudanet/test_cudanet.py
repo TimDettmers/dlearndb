@@ -2004,3 +2004,16 @@ class TestCudanet(object):
         B = self.be.ones_like(A)
         np.testing.assert_array_equal(B.data, np.ones((10,10)), "ones_like(mat) not working!")
         
+    @attr('equal')
+    def test_equal(self):
+        A1 = self.be.ones((10,10))*0.33
+        A2 = self.be.ones((10,10))*0.33                
+        B1 = np.ones((10,10))*0.33
+        B2 = np.ones((10,10))*0.33
+        np.testing.assert_array_equal((A1==A2).data, B1==B2, "Numpy equal")
+        A2 *= 0.5
+        B2 *= 0.5
+        np.testing.assert_array_equal((A1==A2).data, B1==B2, "Numpy equal")
+        
+    
+        
