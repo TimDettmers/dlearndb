@@ -2052,7 +2052,7 @@ def cublas_shutdown():
     
 def argsort(A, idx=None):
     assert A.shape[0]==1 or A.shape[1]==1
-    if not idx: idx = array(np.float32(np.arange(A.shape[0]*A.shape[1])))
+    if not idx: idx = arange(A.shape[0]*A.shape[1])
     temp = A.copy(A)    
     _cudanet.argsort(temp.p_mat, idx.p_mat)
     del temp
