@@ -90,6 +90,7 @@ __global__ void kArgMaxColumnwise(float* mat, float* target, unsigned int width,
 __global__ void kArgMaxRowwise(float* mat, float* target, unsigned int width, unsigned int height);
 __global__ void kArgMinColumnwise(float* mat, float* target, unsigned int width, unsigned int height);
 __global__ void kArgMinRowwise(float* mat, float* target, unsigned int width, unsigned int height);
+__global__ void kArange(float* target, unsigned int width, unsigned int height);
 
 template<typename T> 
 __device__ T shfl_down(T a, int b, int c=WARP_SIZE) {

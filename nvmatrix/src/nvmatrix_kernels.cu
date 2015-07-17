@@ -222,3 +222,12 @@ __global__ void kArgMinRowwise(float* mat, float* target, unsigned int width, un
         target[blockIdx.x] = cur_arg;
     }
 }
+
+__global__ void kArange(float* target, unsigned int width, unsigned int height) {
+    const int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    const int numThreads = blockDim.x * gridDim.x;
+    //    const unsigned int numEls = tgtWidth * tgtHeight;
+    for (uint i = idx; i < width * height; i += numThreads) {
+       target[i] = (float)i;
+    }
+}

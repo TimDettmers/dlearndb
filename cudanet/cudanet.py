@@ -1179,6 +1179,17 @@ def fill(mat, fill_value):
 
     return mat
 
+def fill_numbered(mat):
+    """
+    Fill the matrix with the numbers from 1 to n, where n is its size.
+    """
+
+    err_code = _cudanet.arange(mat.p_mat)
+    if err_code:
+        raise generate_exception(err_code)
+
+    return mat
+
 def logistic_grad(mat, target=None):
     """
     Apply the logistic sigmoid gradient to each element of the matrix mat.
@@ -2046,9 +2057,11 @@ def argsort(A, idx=None):
     _cudanet.argsort(temp.p_mat, idx.p_mat)
     del temp
     return idx
-    
-    
-        
+
+def arange(number):
+    out = empty((number,1))
+    fill_numbered(out)
+    return out    
 
 _cudanet.cublas_init()
 array.ones = array(np.ones((MAX_ONES, 1), dtype=np.float32, order='C'))

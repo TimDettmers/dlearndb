@@ -147,6 +147,7 @@ _cudanet.get_gpu_pythonbuf.restype = ct.py_object
 _cudanet.multi_ranked_error.restype = ct.c_int
 
 _cudanet.argsort.restype = ct.c_int
+_cudanet.arange.restype = ct.c_int
 
 
 def deprecated(func):

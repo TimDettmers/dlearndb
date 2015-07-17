@@ -1372,6 +1372,13 @@ void NVMatrix::argmin(int axis, NVMatrix& target, cudaStream_t stream) {
     }
 }
 
+void NVMatrix::arange() {
+
+    kArange<<<NUM_TILE_BLOCKS,NUM_TILE_THREADS_PER_BLOCK, 0, NVMatrix::getDefaultStream()>>>(getDevData(), _numCols, _numRows);
+
+    getLastCudaError("Kernel execution failed");
+}
+
 void NVMatrix::max(int axis, NVMatrix& target) {
     _aggregate(axis, target, NVMatrixAggs::Max(), NVMatrixBinaryOps::Second());
 }

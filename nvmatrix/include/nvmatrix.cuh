@@ -524,6 +524,7 @@ public:
     void mean(int axis, NVMatrix& target);
     void var(int axis, NVMatrix &mean, NVMatrix& target);
     void max(int axis, NVMatrix& target);
+    void arange();
     void argmax(int axis, NVMatrix& target);
     void argmin(int axis, NVMatrix& target);
     void argmax(int axis, NVMatrix& target, cudaStream_t stream);

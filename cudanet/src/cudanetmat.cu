@@ -1865,6 +1865,12 @@ extern int argsort(cudanetmat *data, cudanetmat *idx)
 	return 0;
 }
 
+extern int arange(cudanetmat* mat) {
+    if (!mat->on_device){ return ERROR_NOT_ON_DEVICE; }
+    mat->data_device->arange();
+    return 0;
+}
+
 
 // These are still to do
 // Weight column norm

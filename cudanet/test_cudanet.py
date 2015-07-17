@@ -2029,11 +2029,14 @@ class TestCudanet(object):
     @attr('argsort')
     def test_argsort(self):
         B1 = np.float32(np.random.randn(1037,1))        
-        A1 = self.be.array(B1)
-        
-        
+        A1 = self.be.array(B1)    
         np.testing.assert_array_equal(np.float32(np.squeeze(np.argsort(B1,0))), self.be.argsort(A1).data)
         
         
+    @attr('arange')
+    def test_arange(self):
+        B1 = np.arange(1083)
+        A1 = self.be.arange(1083)
+        np.testing.assert_array_equal(np.float32(B1), np.squeeze(A1.data))
     
         
