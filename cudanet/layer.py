@@ -3,9 +3,9 @@ Created on Apr 9, 2015
 
 @author: tim
 '''
+from cpp_interface import *
 import cudanet as gpu
 import numpy as np
-import util_2 as u
 import ctypes as ct
 import logging
 import os
@@ -13,10 +13,8 @@ import cPickle as pickle
 import multiprocessing as mp
 from time import sleep
 
-
 '''
 strategy pattern for torch7-like API
-'''
 '''
 class ActivationFunc(object):
     def __init__(self, dropout, gpu_func, gpu_func_grad):    
@@ -39,7 +37,7 @@ class ReLU(ActivationFunc):
         super(ReLU, self).__init__(0.5, gpu.rectified_linear, gpu.rectified_linear_grad)      
         
 class Input(ActivationFunc): 
-    def __init__(self):  
+    def __init__(self):
         super(Input, self).__init__(0.2, gpu.identity, gpu.identity)
         
 class Linear(ActivationFunc): 
@@ -61,7 +59,7 @@ class Code(ActivationFunc):
         #super(Code, self).__init__(0.0, gpu.logistic, gpu.logistic_grad)
     def activation(self, previous_output, my_activation, my_output, useDropout): 
         self.gpu_func(previous_output, my_output); 
-'''
+
 '''
 class GradientSynchronizer(Thread):
     def __init__(self):
@@ -92,14 +90,16 @@ class GradientSynchronizer(Thread):
     
 g = GradientSynchronizer()
 '''
-'''
+
 class Layer(object):
-    def __init__(self, unitcount=0, activation_function=Input(), workdir = None, network_name = 'neural_net'):
+    #def __init__(self, unitcount=0, activation_function=Logistic(), workdir = None, network_name = 'neural_net'):
+    def __init__(self, unitcount=0, activation_function=None, workdir = None, network_name = 'neural_net'):        
         self.w_next = None
         self.w_next_sync = None
         self.activation = None
         self.activation_offsize = None         
         self.funcs = activation_function
+        if not self.funcs: self.funcs = Input()
         self.unitcount = unitcount
         self.next_layer = None
         self.prev_layer = None
@@ -492,11 +492,3 @@ class Layer(object):
             logging.error('Need working directory to perform this action!')
             return       
         
-        
-        
-        
-        
-        
-
-
-'''

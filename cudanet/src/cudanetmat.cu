@@ -24,6 +24,10 @@
 #include "../include/cudanetmat.cuh"
 #include "../../cudaconvnet/include/layer_kernels.cuh"
 
+#include <thrust/device_vector.h>
+#include <thrust/sort.h>
+#include <thrust/device_ptr.h>
+
 extern "C" {
 int elementwise_check3(cudanetmat* mat1, cudanetmat* mat2, cudanetmat* target);
 int elementwise_check2(cudanetmat* mat1, cudanetmat* target);
@@ -1176,6 +1180,64 @@ extern int greater_than_scalar(cudanetmat* mat, float val, cudanetmat* target) {
     return 0;
 }
 
+extern int greater_equal_scalar(cudanetmat* mat, float val, cudanetmat* target) {
+    if (!mat->on_device || !target->on_device)
+        return ERROR_NOT_ON_DEVICE;
+
+    if (mat->is_trans != target->is_trans)
+        return ERROR_TRANSPOSEDNESS;
+
+    if (mat->size[0] != target->size[0] || mat->size[1] != target->size[1])
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+
+    mat->data_device->apply(NVMatrixOps::GreaterEqualScalar(val), *(target->data_device));
+    return 0;
+}
+
+extern int less_equal_scalar(cudanetmat* mat, float val, cudanetmat* target) {
+    if (!mat->on_device || !target->on_device)
+        return ERROR_NOT_ON_DEVICE;
+
+    if (mat->is_trans != target->is_trans)
+        return ERROR_TRANSPOSEDNESS;
+
+    if (mat->size[0] != target->size[0] || mat->size[1] != target->size[1])
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+
+    mat->data_device->apply(NVMatrixOps::LessEqualScalar(val), *(target->data_device));
+    return 0;
+}
+
+extern int less_equal(cudanetmat* mat1, cudanetmat* mat2, cudanetmat* target) {
+    if (!mat1->on_device || !mat2->on_device || !target->on_device)
+        return ERROR_NOT_ON_DEVICE;
+
+    if (mat1->is_trans != mat2->is_trans)
+        return ERROR_TRANSPOSEDNESS;
+
+    if (mat1->size[0] != mat2->size[0] || mat1->size[1] != mat2->size[1] ||
+        mat1->size[0] != target->size[0] || mat1->size[1] != target->size[1])
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+
+    mat1->data_device->applyBinary(NVMatrixBinaryOps::LessEqual(), *(mat2->data_device), *(target->data_device));
+    return 0;
+}
+
+extern int greater_equal(cudanetmat* mat1, cudanetmat* mat2, cudanetmat* target) {
+    if (!mat1->on_device || !mat2->on_device || !target->on_device)
+        return ERROR_NOT_ON_DEVICE;
+
+    if (mat1->is_trans != mat2->is_trans)
+        return ERROR_TRANSPOSEDNESS;
+
+    if (mat1->size[0] != mat2->size[0] || mat1->size[1] != mat2->size[1] ||
+        mat1->size[0] != target->size[0] || mat1->size[1] != target->size[1])
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+
+    mat1->data_device->applyBinary(NVMatrixBinaryOps::GreaterEqual(), *(mat2->data_device), *(target->data_device));
+    return 0;
+}
+
 extern int equals(cudanetmat* mat1, cudanetmat* mat2, cudanetmat* target) {
     if (!mat1->on_device || !mat2->on_device || !target->on_device)
         return ERROR_NOT_ON_DEVICE;
@@ -1191,6 +1253,21 @@ extern int equals(cudanetmat* mat1, cudanetmat* mat2, cudanetmat* target) {
     return 0;
 }
 
+extern int not_equal(cudanetmat* mat1, cudanetmat* mat2, cudanetmat* target) {
+    if (!mat1->on_device || !mat2->on_device || !target->on_device)
+        return ERROR_NOT_ON_DEVICE;
+
+    if (mat1->is_trans != mat2->is_trans)
+        return ERROR_TRANSPOSEDNESS;
+
+    if (mat1->size[0] != mat2->size[0] || mat1->size[1] != mat2->size[1] ||
+        mat1->size[0] != target->size[0] || mat1->size[1] != target->size[1])
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+
+    mat1->data_device->applyBinary(NVMatrixBinaryOps::NotEqual(), *(mat2->data_device), *(target->data_device));
+    return 0;
+}
+
 extern int equals_scalar(cudanetmat* mat, float val, cudanetmat* target) {
     if (!mat->on_device || !target->on_device)
         return ERROR_NOT_ON_DEVICE;
@@ -1202,6 +1279,20 @@ extern int equals_scalar(cudanetmat* mat, float val, cudanetmat* target) {
         return ERROR_INCOMPATIBLE_DIMENSIONS;
 
     mat->data_device->apply(NVMatrixOps::EqualsScalar(val), *(target->data_device));
+    return 0;
+}
+
+extern int not_equals_scalar(cudanetmat* mat, float val, cudanetmat* target) {
+    if (!mat->on_device || !target->on_device)
+        return ERROR_NOT_ON_DEVICE;
+
+    if (mat->is_trans != target->is_trans)
+        return ERROR_TRANSPOSEDNESS;
+
+    if (mat->size[0] != target->size[0] || mat->size[1] != target->size[1])
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+
+    mat->data_device->apply(NVMatrixOps::NotEqualScalar(val), *(target->data_device));
     return 0;
 }
 
@@ -1762,6 +1853,16 @@ extern PyObject *test_make_tuple(int nval) {
 
     t = Py_BuildValue("(iis)", nval, nval, "three");
     return t;
+}
+
+extern int argsort(cudanetmat *data, cudanetmat *idx)
+{
+	thrust::device_ptr<float> ptr_data(data->data_device->getDevData());
+	thrust::device_ptr<float> ptr_idx(idx->data_device->getDevData());
+	int size = idx->size[0]*idx->size[1];
+	thrust::sort_by_key(ptr_data,ptr_data+size, ptr_idx);
+
+	return 0;
 }
 
 

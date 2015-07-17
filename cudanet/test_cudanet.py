@@ -2011,9 +2011,29 @@ class TestCudanet(object):
         B1 = np.ones((10,10))*0.33
         B2 = np.ones((10,10))*0.33
         np.testing.assert_array_equal((A1==A2).data, B1==B2, "Numpy equal")
+        np.testing.assert_array_equal((A1==0.33).data, B1==0.33, "Numpy equal")
         A2 *= 0.5
         B2 *= 0.5
         np.testing.assert_array_equal((A1==A2).data, B1==B2, "Numpy equal")
+        np.testing.assert_array_equal((A1==0).data, B1==0, "Numpy equal")
+        
+    @attr('greater_than')
+    def test_greater_than(self):
+        B1 = np.float32(np.random.randn(1000,1000))
+        B2 = np.zeros((1000,1000))
+        A1 = self.be.array(B1)
+        A2 = self.be.zeros((1000,1000))
+        np.testing.assert_array_equal((A1>A2).data, B1>B2, "Numpy equal")
+        np.testing.assert_array_equal((A1>0).data, B1>0, "Numpy equal")
+        
+    @attr('argsort')
+    def test_argsort(self):
+        B1 = np.float32(np.random.randn(1037,1))        
+        A1 = self.be.array(B1)
+        
+        
+        np.testing.assert_array_equal(np.float32(np.squeeze(np.argsort(B1,0))), self.be.argsort(A1).data)
+        
         
     
         

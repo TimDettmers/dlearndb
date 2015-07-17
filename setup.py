@@ -30,12 +30,12 @@ install_requires = ['numpy', ]
 test_requires = ['nose', ]
 
 setup(name="cudanet",
-      version="0.2.7",
+      version="0.2.8",
       description="Provides a set of cudamat like functions using cuda-convnet2 kernels",
       ext_modules = [cudanet],
       packages=['cudanet'],
-      author="Alex Khrizevsky and Nervanasys",
-      author_email="info@nervanasys.com",
+      author="Alex Khrizevsky, Nervanasys, and Tim Dettmers",
+      author_email="tim.dettmers@gmail.com",
       url="https://code.google.com/p/cuda-convnet2/",
       install_requires=install_requires,
       tests_require=test_requires,

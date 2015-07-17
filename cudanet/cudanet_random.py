@@ -6,7 +6,7 @@ Created on Jun 27, 2015
 from cpp_interface import *
 import cudanet as gpu
 
-_cudanet = lib.cudanet
+_cudanet = lib._cudanet
 _cudanet.init_random_no_seed()
 
 def rand(d0, d1):    

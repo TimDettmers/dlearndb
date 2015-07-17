@@ -5,16 +5,14 @@
 # Altered by Tim Dettmers.
 # ----------------------------------------------------------------------------
 import os
-
-import ctypes as ct
-import ctypes.util
-from ctypes import pythonapi
 import numpy as np
 import cudanet_random as random
-import layers.layer
+import layer
 from cpp_interface import * 
 
-_cudanet = lib.cudanet
+_cudanet = lib._cudanet
+
+
 
 class array(object):
     """
@@ -45,8 +43,10 @@ class array(object):
             self.size = self.mat.size
             self.p_mat = ct.pointer(self.mat)
             self.numpy_array = array
-
-            _cudanet.init_from_array(self.p_mat, array.ctypes.data_as(ct.POINTER(ct.c_float)), ct.c_int(array.shape[0]), ct.c_int(array.shape[1]))
+            if len(array.shape) == 1:
+                _cudanet.init_from_array(self.p_mat, array.ctypes.data_as(ct.POINTER(ct.c_float)), ct.c_int(array.shape[0]), 1)
+            else:
+                _cudanet.init_from_array(self.p_mat, array.ctypes.data_as(ct.POINTER(ct.c_float)), ct.c_int(array.shape[0]), ct.c_int(array.shape[1]))
             if copy_to_device:
                 err_code = _cudanet.copy_to_device(self.p_mat)
                 if err_code:
@@ -122,17 +122,32 @@ class array(object):
     def __eq__(self, other):         
         out = self.copy(self) 
         out.equal(other)
+        return out   
+    
+    def __ne__(self, other):         
+        out = self.copy(self) 
+        out.not_equal(other)
         return out
     
     def __gt__(self, other):         
         out = self.copy(self) 
         out.greater_than(other)
         return out    
+        
+    def __ge__(self, other):         
+        out = self.copy(self) 
+        out.greater_equal(other)
+        return out    
     
     def __lt__(self, other):    
         out = self.copy(self) 
         out.less_than(other)
-        return out
+        return out    
+    
+    def __le__(self, other):         
+        out = self.copy(self) 
+        out.less_equal(other)
+        return out    
     
     def __getitem__(self, selectors):        
         dims = 1
@@ -794,6 +809,24 @@ class array(object):
             raise generate_exception(err_code)
 
         return target
+    
+    def not_equal(self, val, target=None):
+        """
+        Perform the operation target = 1. * (self == val), where val can be a matrix or a scalar.
+        """
+
+        if not target:
+            target = self
+
+        if isinstance(val, (np.int32, np.float32, int, float)):
+            err_code = _cudanet.not_equal_scalar(self.p_mat, ct.c_float(val), target.p_mat)
+        else:
+            err_code = _cudanet.not_equal(self.p_mat, val.p_mat, target.p_mat)
+
+        if err_code:
+            raise generate_exception(err_code)
+
+        return target
 
     def less_than(self, val, target=None):
         """
@@ -825,6 +858,42 @@ class array(object):
             err_code = _cudanet.greater_than_scalar(self.p_mat, ct.c_float(val), target.p_mat)
         else:
             err_code = _cudanet.greater_than(self.p_mat, val.p_mat, target.p_mat)
+
+        if err_code:
+            raise generate_exception(err_code)
+
+        return target
+    
+    def greater_equal(self, val, target=None):
+        """
+        Perform the operation target = 1. * (self > val), where val can be a matrix or a scalar.
+        """
+
+        if not target:
+            target = self
+
+        if isinstance(val, (np.int32, np.float32, int, float)):
+            err_code = _cudanet.greater_equal_scalar(self.p_mat, ct.c_float(val), target.p_mat)
+        else:
+            err_code = _cudanet.greater_equal(self.p_mat, val.p_mat, target.p_mat)
+
+        if err_code:
+            raise generate_exception(err_code)
+
+        return target
+    
+    def less_equal(self, val, target=None):
+        """
+        Perform the operation target = 1. * (self > val), where val can be a matrix or a scalar.
+        """
+
+        if not target:
+            target = self
+
+        if isinstance(val, (np.int32, np.float32, int, float)):
+            err_code = _cudanet.less_equal_scalar(self.p_mat, ct.c_float(val), target.p_mat)
+        else:
+            err_code = _cudanet.less_equal(self.p_mat, val.p_mat, target.p_mat)
 
         if err_code:
             raise generate_exception(err_code)
@@ -1152,9 +1221,12 @@ def rectified_linear(mat, target=None):
 
     return target
 
+def uden():
+    print 'kek'
+
 def identity(mat, target=None):
     """
-    Apply the rectified linear gradient to each element of the matrix mat.
+    Apply identity function (basically, just like the copy function) to each element of the matrix mat.
     """
 
     if not target:
@@ -1966,6 +2038,17 @@ def cublas_shutdown():
     """
     array.ones = 0
     _cudanet.cublas_shutdown()
+    
+def argsort(A, idx=None):
+    assert A.shape[0]==1 or A.shape[1]==1
+    if not idx: idx = array(np.float32(np.arange(A.shape[0]*A.shape[1])))
+    temp = A.copy(A)    
+    _cudanet.argsort(temp.p_mat, idx.p_mat)
+    del temp
+    return idx
+    
+    
+        
 
 _cudanet.cublas_init()
 array.ones = array(np.ones((MAX_ONES, 1), dtype=np.float32, order='C'))

@@ -274,6 +274,28 @@ public:
         }
     };
 
+    class GreaterEqualScalar {
+    private:
+        const float scalar;
+    public:
+        GreaterEqualScalar(const float _scalar) : scalar(_scalar) {
+        }
+        __device__ inline float operator()(const float a) const {
+            return a >= scalar;
+        }
+    };
+
+    class LessEqualScalar {
+    private:
+        const float scalar;
+    public:
+        LessEqualScalar(const float _scalar) : scalar(_scalar) {
+        }
+        __device__ inline float operator()(const float a) const {
+            return a <= scalar;
+        }
+    };
+
     class BiggerThanScalar {
     private:
         const float scalar;
@@ -293,6 +315,17 @@ public:
         }
         __device__ inline float operator()(const float a) const {
             return a == scalar;
+        }
+    };
+
+    class NotEqualScalar {
+    private:
+        const float scalar;
+    public:
+        NotEqualScalar(const float _scalar) : scalar(_scalar) {
+        }
+        __device__ inline float operator()(const float a) const {
+            return a != scalar;
         }
     };
 
@@ -413,6 +446,27 @@ public:
     public:
         __device__ inline float operator()(const float a, const float b) const {
             return a == b;
+        }
+    };
+
+    class NotEqual : public BinaryOp {
+    public:
+        __device__ inline float operator()(const float a, const float b) const {
+            return a != b;
+        }
+    };
+
+    class LessEqual : public BinaryOp {
+    public:
+        __device__ inline float operator()(const float a, const float b) const {
+            return a <= b;
+        }
+    };
+
+    class GreaterEqual : public BinaryOp {
+    public:
+        __device__ inline float operator()(const float a, const float b) const {
+            return a >= b;
         }
     };
 

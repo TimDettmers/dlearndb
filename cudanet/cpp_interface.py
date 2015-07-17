@@ -81,6 +81,10 @@ _cudanet.less_than.restype = ct.c_int
 _cudanet.less_than_scalar.restype = ct.c_int
 _cudanet.greater_than.restype = ct.c_int
 _cudanet.greater_than_scalar.restype = ct.c_int
+_cudanet.greater_equal.restype = ct.c_int
+_cudanet.greater_equal_scalar.restype = ct.c_int
+_cudanet.less_equal.restype = ct.c_int
+_cudanet.less_equal_scalar.restype = ct.c_int
 _cudanet.equals.restype = ct.c_int
 _cudanet.equals_scalar.restype = ct.c_int
 _cudanet.minimum.restype = ct.c_int
@@ -141,6 +145,8 @@ _cudanet.crossent_cost.restype = ct.c_int
 _cudanet.crossent_cost_grad.restype = ct.c_int
 _cudanet.get_gpu_pythonbuf.restype = ct.py_object
 _cudanet.multi_ranked_error.restype = ct.c_int
+
+_cudanet.argsort.restype = ct.c_int
 
 
 def deprecated(func):
@@ -275,5 +281,5 @@ class Transposedarray(object):
         self.p_mat = ct.pointer(self.mat)
         
 class lib(object):
-    cudanet = _cudanet
+    _cudanet = _cudanet
 
