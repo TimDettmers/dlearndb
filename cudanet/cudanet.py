@@ -9,6 +9,7 @@ import numpy as np
 import cudanet_random as random
 import layer
 from cpp_interface import * 
+from threading import Thread
 
 _cudanet = lib._cudanet
 
@@ -328,6 +329,18 @@ class array(object):
         if not isinstance(newbuf, np.ndarray):
             raise ValueError("Assigned value must be a numpy array")
         _cudanet.set_host_mat(self.p_mat, newbuf.ctypes.data_as(ct.POINTER(ct.c_float)))
+        self.numpy_array = newbuf
+        
+    def set_pinned_host_mat(self, newbuf):
+        """
+        For changing the host matrix associated with this object to newbuf
+        """
+        
+        if not isinstance(newbuf, np.ndarray):
+            raise ValueError("Assigned value must be a numpy array")
+        if len(newbuf.shape) != 2:
+            raise ValueError("Assigned value must be a two dimensional numpy array")
+        _cudanet.set_pinned_host_mat(self.p_mat, newbuf.ctypes.data_as(ct.POINTER(ct.c_float)), newbuf.shape[0], newbuf.shape[1])
         self.numpy_array = newbuf
 
     def free_device_memory(self):
@@ -1083,6 +1096,14 @@ class array(object):
         """
 
         _cudanet.print_devmat(self.p_mat)
+        
+    def host_to_device_start(self, host):
+        host = np.float32(host)
+        self.mem_thread = Thread(target=host_to_device, args=(host.ctypes.data_as(ct.POINTER(ct.c_float)), self.p_mat))
+        self.mem_thread.start()
+        
+    def host_to_device_end(self):        
+        self.mem_thread.join()
         
 def empty_like(A): return empty(A.shape)    
 def empty(shape):
@@ -1981,10 +2002,18 @@ def weight_norm_along_axis(weights, target=None, axis=0, norm=1.0):
 
 
 def host_to_device(host, device):
-    host = np.float32(host)
-    _cudanet.set_host_mat(device.p_mat, host.ctypes.data_as(ct.POINTER(ct.c_float)))
-    _cudanet.copy_to_device_buffer(device.p_mat, device.p_mat)
+    _cudanet.set_host_mat(device, host)
+    _cudanet.copy_to_device_buffer(device, device)
     
+    #_cudanet.set_host_mat(device.p_mat, host.ctypes.data_as(ct.POINTER(ct.c_float)))
+    #_cudanet.copy_to_device_buffer(device.p_mat, device.p_mat)
+'''    
+def host_to_device_async(host, device):
+    host = np.float32(host)
+    processThread = Thread(target=host_to_device, args=(host.ctypes.data_as(ct.POINTER(ct.c_float)), device.p_mat))
+    processThread.start()
+    processThread.join()
+'''    
 def dropout(A, dropout_threshold=0.5, out=None):
     if not out: out = random.rand(A.shape[0], A.shape[1])
     random.randomize_uniform(out)
@@ -2062,6 +2091,31 @@ def arange(number):
     out = empty((number,1))
     fill_numbered(out)
     return out    
+
+
+def equal(A,B, out):
+    if not out: return A==B
+    else: A.equal(B, out)
+    
+def less(A,B, out):
+    if not out: return A<B
+    else: A.less_than(B, out)
+    
+def less_equal(A,B, out):
+    if not out: return A<=B
+    else: A.less_equal(B, out)
+    
+def greater(A,B, out):
+    if not out: return A>B
+    else: A.greater_than(B, out)
+    
+def greater_equal(A,B, out):
+    if not out: return A>=B
+    else: A.greater_equal(B, out)
+    
+def not_equal(A,B, out):
+    if not out: return A!=B
+    else: A.not_equal(B, out)
 
 _cudanet.cublas_init()
 array.ones = array(np.ones((MAX_ONES, 1), dtype=np.float32, order='C'))

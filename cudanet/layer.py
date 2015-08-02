@@ -90,6 +90,12 @@ class GradientSynchronizer(Thread):
     
 g = GradientSynchronizer()
 '''
+        
+def create_uniform_rdm_weight(input_size,output_size):
+    rdm = np.random.RandomState(1234)        
+    return rdm.uniform(low=-4*np.sqrt(6./(input_size+output_size)),
+                    high=4*np.sqrt(6./(input_size+output_size)),
+                    size=(input_size,output_size))
 
 class Layer(object):
     #def __init__(self, unitcount=0, activation_function=Logistic(), workdir = None, network_name = 'neural_net'):
@@ -185,7 +191,7 @@ class Layer(object):
     def create_weights(self):
         self.log_network()
         if self.next_layer:
-            self.w_next = gpu.array(u.create_uniform_rdm_weight(self.unitcount,self.next_layer.unitcount))
+            self.w_next = gpu.array(create_uniform_rdm_weight(self.unitcount,self.next_layer.unitcount))
             self.b_next = gpu.zeros((1, self.next_layer.unitcount))
             self.m_next = gpu.zeros((self.unitcount, self.next_layer.unitcount))
             self.w_grad_next = gpu.zeros((self.unitcount, self.next_layer.unitcount))
@@ -270,21 +276,7 @@ class Layer(object):
             self.funcs.activation(self.activation, self.activation, self.out, inTrainingMode)  
             
         if self.next_layer: self.next_layer.forward(None, None, inTrainingMode)
-    
-    def handle_parallelism(self):
-        if self.config['parallelism'] == 'data' and self.next_layer: 
-            #gpu.sync_streams(self.id)    
-            if self.next_layer.config['compression'] == '16bit':
-                gpu.decompress_16bit(self.w_next_sync_16bit, self.w_next_sync)
-            elif self.next_layer.config['compression'] == '8bit':                 
-                gpu.decompress_sync_streams_add(self.w_grad_next, self.id, -1, self.abs_max_grad_value, np.char)
-            elif self.next_layer.config['compression'] == '1bit':
-                gpu.decompress_1bit(self.w_next_sync_1bit, self.errors,self.posAvg, self.negAvg, self.w_next_sync)
-            else:            
-                gpu.decompress_sync_streams_add(self.w_grad_next, self.id, -1, self.abs_max_grad_value, np.float32)
-            self.weight_update()
-            
-        if self.next_layer: self.next_layer.handle_parallelism()
+
     
     def predict(self, data):
         self.forward(data, None,False)   
@@ -302,43 +294,22 @@ class Layer(object):
     def backward_errors(self):
         if self.next_layer: self.next_layer.backward_errors()
         else: 
-            gpu.sub(self.out,self.target,self.error)
+            gpu.subtract(self.out,self.target,self.error)
             return
         
         if type(self.funcs) is Input: return
         
         self.funcs.grad(self.activation,self.out)
-        gpu.dotT(self.next_layer.error, self.w_next, self.error)
-        gpu.mul(self.error, self.out, self.error)
+        gpu.dot(self.next_layer.error, self.w_next.T, self.error)
+        gpu.multiply(self.error, self.out, self.error)
         
     def backward_grads(self):
         if self.target: return
-        gpu.Tdot(self.activation, self.next_layer.error, self.w_grad_next)
+        gpu.dot(self.activation.T, self.next_layer.error, self.w_grad_next)
         
-        if self.next_layer.config['parallelism'] == 'data': 
-            if not self.has_gradients:  
-                gpu.create_additional_streams(1)
-            if self.next_layer.config['compression'] == '16bit':
-                gpu.compress_16bit(self.w_grad_next, self.w_next_grad_16bit)
-                gpu.sync(self.w_next_sync_16bit, self.id, np.float16)
-            elif self.next_layer.config['compression'] == '8bit':
-                if self.abs_max_grad_value == 0.0:
-                    gpu.abs(self.w_grad_next, self.max_value_buffer)
-                    self.abs_max_grad_value = gpu.max(self.max_value_buffer)
-                gpu.abs(self.w_grad_next, self.max_value_buffer)
-                self.abs_max_grad_value = gpu.max(self.max_value_buffer)
-                    
-                gpu.compress_and_sync(self.w_grad_next, self.id, self.abs_max_grad_value, np.char)
-            elif self.next_layer.config['compression'] == '1bit':
-                gpu.compress_1bit(self.w_grad_next, self.w_grad_with_errors, self.errors,
-                                  self.posAvg, self.negAvg, self.w_next_grad_1bit, self.posMask,
-                                  self.negMask, self.posCount, self.negCount)   
-                gpu.sync(self.w_next_grad_1bit, self.id, np.ushort)                      
-            else:
-                gpu.compress_and_sync(self.w_grad_next, self.id, self.abs_max_grad_value, np.float32)
         if self.next_layer: self.next_layer.backward_grads()        
         
-        gpu.Tdot(self.bias_ones, self.next_layer.error, self.b_grad_next)
+        gpu.dot(self.bias_ones.T, self.next_layer.error, self.b_grad_next)
         
     def accumulate_error(self):
         if self.config['error_evaluation'] == 'classification':

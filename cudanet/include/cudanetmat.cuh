@@ -20,7 +20,7 @@
 #define ERROR_RND_NOT_INITIALIZED -13
 
 struct cudanetmat {
-    Matrix *data_host;
+	Matrix *data_host;
     NVMatrix *data_device;
     int on_device;
     int on_host;

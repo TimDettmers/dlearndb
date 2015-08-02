@@ -148,6 +148,9 @@ _cudanet.multi_ranked_error.restype = ct.c_int
 
 _cudanet.argsort.restype = ct.c_int
 _cudanet.arange.restype = ct.c_int
+_cudanet.set_pinned_host_mat.restype = ct.c_int
+_cudanet.free_pinned.restype = ct.c_int
+_cudanet.not_equal_scalar.restype = ct.c_int
 
 
 def deprecated(func):

@@ -37,6 +37,7 @@
 #include <string.h>
 #include <math.h>
 #include <vector>
+#include <cuda_runtime.h>
 
 extern "C" {
 #include <cblas.h>
@@ -98,6 +99,7 @@ public:
 #endif
     Matrix(const Matrix &like);
     Matrix(MTYPE* data, int64 numRows, int64 numCols);
+    Matrix(float *buffer, int64 numRows, int64 numCols, int nil);
     Matrix(MTYPE* data, int64 numRows, int64 numCols, bool transpose);
     ~Matrix();
 

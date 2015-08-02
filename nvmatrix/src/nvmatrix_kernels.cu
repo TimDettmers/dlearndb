@@ -231,3 +231,87 @@ __global__ void kArange(float* target, unsigned int width, unsigned int height) 
        target[i] = (float)i;
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+__device__ void partition_by_bit(float *values, float *idx, unsigned int bit);
+__device__ void radix_sort(float *values, float idx)
+{
+    int  bit;
+    for( bit = 0; bit < 32; ++bit )
+    {
+        partition_by_bit(values, idx, bit);
+        __syncthreads();
+    }
+}
+
+template<class T>
+__device__ T plus_scan(T *x)
+{
+    unsigned int i = threadIdx.x; // id of thread executing this instance
+    unsigned int n = blockDim.x;  // total number of threads in this block
+    unsigned int offset;          // distance between elements to be added
+
+    for( offset = 1; offset < n; offset *= 2) {
+        T t;
+
+        if ( i >= offset )
+            t = x[i-offset];
+
+        __syncthreads();
+
+        if ( i >= offset )
+            x[i] = t + x[i];      // i.e., x[i] = x[i] + x[i-1]
+
+        __syncthreads();
+    }
+    return x[i];
+}
+__device__ void partition_by_bit(float *values, float *idx, unsigned int bit)
+{
+    unsigned int i = threadIdx.x;
+    unsigned int size = blockDim.x;
+    float x_i = values[i];          // value of integer at position i
+    float idx_i = idx[i];          // value of integer at position i
+    unsigned int p_i = (x_i >> bit) & 1;   // value of bit at position bit
+    values[i] = p_i;
+
+    __syncthreads();
+    unsigned int T_before = plus_scan(values);
+    unsigned int T_total  = values[size-1];
+    unsigned int F_total  = size - T_total;
+
+    __syncthreads();
+
+
+    if ( p_i )
+    {
+        values[T_before-1 + F_total] = x_i;
+        idx[T_before-1 + F_total] = idx_i;
+    }
+    else
+    {
+        values[i - T_before] = x_i;
+        idx[i - T_before] = idx_i;
+    }
+
+
+}
+*/
+
+
+

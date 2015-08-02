@@ -42,6 +42,12 @@ Matrix::Matrix() {
     _init(NULL, 0, 0, false, true);
 }
 
+
+Matrix::Matrix(float *buffer, int64 numRows, int64 numCols, int nil) {
+    _init(NULL, numRows, numCols, false, true);
+    this->_data = buffer;
+}
+
 Matrix::Matrix(int64 numRows, int64 numCols) {
     _init(NULL, numRows, numCols, false, true);
     this->_data = numRows * numCols > 0 ? new MTYPE[this->_numElements] : NULL;

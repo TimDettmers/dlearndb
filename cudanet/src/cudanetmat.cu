@@ -16,6 +16,7 @@
 #include <vector>
 #include <execinfo.h>
 #include <signal.h>
+#include <cuda_runtime.h>
 
 #include "../../util/include/matrix.h"
 #include "../../util/include/queue.h"
@@ -173,6 +174,32 @@ extern int allocate_device_memory(cudanetmat* mat) {
     return 0;
 }
 
+extern int set_pinned_host_mat(cudanetmat* mat, float *data, int rows, int cols)
+{
+    mat->size[0] = rows;
+    mat->size[1] = cols;
+    mat->on_device = 0;
+    mat->on_host = 0;
+    mat->is_trans = 0;
+    mat->owns_data = 1;
+
+    float *pinned_data;
+    size_t bytes = rows*cols*sizeof(float);
+    cudaHostAlloc(&pinned_data, bytes, cudaHostAllocPortable);
+
+    cudaMemcpy(pinned_data, data, bytes, cudaMemcpyDefault);
+
+    mat->data_host = new Matrix(pinned_data,rows, cols, 99);
+
+    return 0;
+}
+
+extern int free_pinned(cudanetmat *mat)
+{
+	cudaFree(mat->data_host->getData());
+	return 0;
+}
+
 extern int copy_to_host(cudanetmat* mat) {
     if (mat->on_device) {
          mat->data_device->copyToHost(*(mat->data_host));
@@ -213,6 +240,8 @@ extern int copy_to_device(cudanetmat* mat) {
 
 extern int copy_to_device_buffer(cudanetmat* host_buffer, cudanetmat* device_buffer)
 {
+
+
     device_buffer->data_device->copyFromHost(*(host_buffer->data_host), false);
     return 0;
 }
@@ -243,6 +272,17 @@ extern void init_from_array(cudanetmat* mat, float* data, int m, int n) {
 }
 
 extern int init_empty(cudanetmat* mat, int m, int n) {
+    mat->size[0] = m;
+    mat->size[1] = n;
+    mat->on_device = 0;
+    mat->on_host = 0;
+    mat->is_trans = 0;
+    mat->owns_data = 1;
+
+    return allocate_device_memory(mat);
+}
+
+extern int init_empty_pinned(cudanetmat* mat, int m, int n) {
     mat->size[0] = m;
     mat->size[1] = n;
     mat->on_device = 0;
@@ -1151,6 +1191,20 @@ extern int less_than_scalar(cudanetmat* mat, float val, cudanetmat* target) {
     return 0;
 }
 
+extern int not_equal_scalar(cudanetmat* mat, float val, cudanetmat* target) {
+    if (!mat->on_device || !target->on_device)
+        return ERROR_NOT_ON_DEVICE;
+
+    if (mat->is_trans != target->is_trans)
+        return ERROR_TRANSPOSEDNESS;
+
+    if (mat->size[0] != target->size[0] || mat->size[1] != target->size[1])
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+
+    mat->data_device->apply(NVMatrixOps::NotEqualScalar(val), *(target->data_device));
+    return 0;
+}
+
 extern int greater_than(cudanetmat* mat1, cudanetmat* mat2, cudanetmat* target) {
     if (!mat1->on_device || !mat2->on_device || !target->on_device)
         return ERROR_NOT_ON_DEVICE;
@@ -1857,10 +1911,44 @@ extern PyObject *test_make_tuple(int nval) {
 
 extern int argsort(cudanetmat *data, cudanetmat *idx)
 {
-	thrust::device_ptr<float> ptr_data(data->data_device->getDevData());
-	thrust::device_ptr<float> ptr_idx(idx->data_device->getDevData());
+	assert(idx->size[0] == 1 || idx->size[1] == 1);
+	thrust::device_ptr<float> ptr_data;
+	thrust::device_ptr<float> ptr_idx;
+	try
+	{
+		ptr_data = thrust::device_pointer_cast(data->data_device->getDevData());
+		ptr_idx = thrust::device_pointer_cast(idx->data_device->getDevData());
+	}
+	catch(thrust::system_error &e)
+	{
+		// output an error message and exit
+		std::cerr << "Error accessing vector element: " << e.what() << std::endl;
+		exit(-1);
+	}
+	catch(std::bad_alloc &e)
+	{
+	   std::cerr << "Couldn't allocate vector" << std::endl;
+	    exit(-1);
+	}
+
 	int size = idx->size[0]*idx->size[1];
-	thrust::sort_by_key(ptr_data,ptr_data+size, ptr_idx);
+
+	try
+	{
+		thrust::stable_sort_by_key(ptr_data,ptr_data+size, ptr_idx);
+	}
+	catch(std::bad_alloc &e)
+	{
+		std::cerr << "Ran out of memory while sorting" << std::endl;
+		exit(-1);
+	}
+	catch(thrust::system_error &e)
+	{
+		std::cerr << "Some other error happened during sort: " << e.what() << std::endl;
+		exit(-1);
+	}
+
+
 
 	return 0;
 }
