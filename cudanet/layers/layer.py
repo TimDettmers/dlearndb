@@ -3,7 +3,6 @@ Created on Apr 9, 2015
 
 @author: tim
 '''
-from cpp_interface import *
 import cudanet as gpu
 import numpy as np
 import ctypes as ct
@@ -96,6 +95,16 @@ def create_uniform_rdm_weight(input_size,output_size):
     return rdm.uniform(low=-4*np.sqrt(6./(input_size+output_size)),
                     high=4*np.sqrt(6./(input_size+output_size)),
                     size=(input_size,output_size))
+    
+def swap(A,B):
+    C = A
+    A = B
+    B = C
+    
+def log_and_print(message):
+    logging.info(message)
+    print message    
+
 
 class Layer(object):
     #def __init__(self, unitcount=0, activation_function=Logistic(), workdir = None, network_name = 'neural_net'):
@@ -212,11 +221,10 @@ class Layer(object):
             if self.next_layer: self.next_layer.create_weights()
         
     def create_buffers(self, batch_size):
-        split_axis = (2 if self.config['parallelism'] == 'data' else -1)
-        self.activation = gpu.empty((batch_size,self.unitcount),split_axis)
-        self.out = gpu.empty((batch_size,self.unitcount),split_axis)
-        self.error = gpu.empty((batch_size,self.unitcount),split_axis)
-        self.bias_ones = gpu.zeros((batch_size,1),split_axis)+1
+        self.activation = gpu.empty((batch_size,self.unitcount))
+        self.out = gpu.empty((batch_size,self.unitcount))
+        self.error = gpu.empty((batch_size,self.unitcount))
+        self.bias_ones = gpu.ones((batch_size,1))
         #self.bias_ones = gpu.array(np.ones((1,batch_size)),3)
         
     def handle_offsize(self, batch_size):
@@ -226,10 +234,10 @@ class Layer(object):
             self.out_offsize = gpu.empty((batch_size,self.unitcount),split_axis)
             self.error_offsize = gpu.empty((batch_size,self.unitcount),split_axis)
             self.bias_ones_offsize = gpu.zeros((batch_size,1),split_axis)+1
-            u.swap_pointer_and_shape(self.activation, self.activation_offsize)
-            u.swap_pointer_and_shape(self.out, self.out_offsize)
-            u.swap_pointer_and_shape(self.error, self.error_offsize)
-            u.swap_pointer_and_shape(self.bias_ones, self.bias_ones_offsize)            
+            swap(self.activation, self.activation_offsize)
+            swap(self.out, self.out_offsize)
+            swap(self.error, self.error_offsize)
+            swap(self.bias_ones, self.bias_ones_offsize)            
         elif self.activation_offsize.shape[2] != batch_size:
             del self.activation
             del self.out
@@ -237,10 +245,10 @@ class Layer(object):
             del self.bias_ones
             self.create_buffers(batch_size)
         else:
-            u.swap_pointer_and_shape(self.activation, self.activation_offsize)
-            u.swap_pointer_and_shape(self.out, self.out_offsize)
-            u.swap_pointer_and_shape(self.error, self.error_offsize)
-            u.swap_pointer_and_shape(self.bias_ones, self.bias_ones_offsize)    
+            swap(self.activation, self.activation_offsize)
+            swap(self.out, self.out_offsize)
+            swap(self.error, self.error_offsize)
+            swap(self.bias_ones, self.bias_ones_offsize)    
     
     def handle_input_size(self, batch_size):
         if self.w_next==None: self.create_weights()
@@ -255,10 +263,9 @@ class Layer(object):
         return root    
         
     def forward(self, data=None, target=None,inTrainingMode=True):              
-        if data is not None:
-            shape = u.handle_shape(data.shape)
-            self.unitcount = shape[3] 
-            self.handle_input_size(shape[2])           
+        if data is not None:            
+            self.unitcount = data.shape[1]
+            self.handle_input_size(data.shape[0])           
             self.root.target = target
             self.funcs.activation(data, self.activation, self.out, inTrainingMode)
             #if inTrainingMode: self.handle_parallelism()
@@ -339,7 +346,7 @@ class Layer(object):
         CI_upper = error+(self.current_SE[-1]*1.96)        
         self.error_epochs[error_name].append(error)
         self.confidence_interval_epochs[error_name].append([CI_lower, CI_upper])
-        u.log_and_print('{1} error: {0}\t ({2},{3})'.format(np.round(error,4),error_name, np.round(CI_lower,4),np.round(CI_upper,4)))        
+        log_and_print('{1} error: {0}\t ({2},{3})'.format(np.round(error,4),error_name, np.round(CI_lower,4),np.round(CI_upper,4)))        
         del self.current_error
         del self.current_SE
         self.current_error = []
@@ -358,14 +365,14 @@ class Layer(object):
                 #del self.w_grad_next                 
                 #self.w_grad_next = gpu.array(x)
                 lib.funcs.inp_RMSProp(self.m_next.pt, self.w_grad_next.pt, ct.c_float(self.config['momentum']),ct.c_float(self.config['learning_rate']), batch_size)                
-                gpu.sub(self.w_next, self.w_grad_next, self.w_next)
+                gpu.subtract(self.w_next, self.w_grad_next, self.w_next)
                 
                 if not self.test_buffer:
                     self.test_buffer = gpu.empty_like(self.w_next)
                 
                 gpu.fill(self.test_buffer, 0.005)
                 gpu.greater(self.w_next, self.test_buffer, self.test_buffer)
-                gpu.mul(self.w_next, self.test_buffer, self.w_next)
+                gpu.multiply(self.w_next, self.test_buffer, self.w_next)
                 
                 
             #apply grad only after initializing RMSProp with the first gradient

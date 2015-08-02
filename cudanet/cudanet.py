@@ -7,7 +7,6 @@
 import os
 import numpy as np
 import cudanet_random as random
-import layer
 from cpp_interface import * 
 from threading import Thread
 
